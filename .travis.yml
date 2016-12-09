@@ -4,7 +4,7 @@ python:
   - 3.5
 install:
   - pip install -r requirements.txt
-  - pip install nosetests pep8
+  - pip install nose pep8
 script:
   - nosetests -v
   - pep8 yaml_argparse.py
