@@ -7,4 +7,4 @@ install:
   - pip install nose pep8
 script:
   - nosetests -v
-  - pep8 yaml_argparse.py
+  - pep8 --ignore=E501 yaml_argparse.py
