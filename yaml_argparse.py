@@ -1,12 +1,81 @@
 import argparse
+from datetime import datetime
+from io import StringIO
 
 import yaml
+
+
+def yaml_parse_value(type_to_enforce, value):
+    print(value)
+    try:
+        parsed = yaml.load(StringIO("{} {}".format(type_to_enforce, value)))
+        return parsed
+    # catch some typical errors that can happen during parsing
+    # raise a ValueError instead to get nicely formatted output from argparse
+    except KeyError:
+        raise ValueError()
+    except yaml.parser.ParserError:
+        raise ValueError()
+    except yaml.constructor.ConstructorError:
+        raise ValueError()
+    except AttributeError:
+        raise ValueError()
+
+
+def init_type_check(yaml_value):
+    def yaml_bool(value):
+        return yaml_parse_value("!!bool", value)
+
+    def yaml_list(value):
+        return yaml_parse_value("!!python/list", value)
+
+    def yaml_tuple(value):
+        return yaml_parse_value("!!python/tuple", value)
+
+    def yaml_none(value):
+        return yaml_parse_value("!!python/none", value)
+
+    def yaml_timestamp(value):
+        return yaml_parse_value("!!timestamp", value)
+
+    if isinstance(yaml_value, bool):   # must be placed before int typecheck, because isinstance(False, int) == True
+        return yaml_bool
+    elif isinstance(yaml_value, int):
+        return int
+    elif isinstance(yaml_value, float):
+        return float
+    elif isinstance(yaml_value, complex):
+        return complex
+    elif isinstance(yaml_value, bytes):  # todo write test
+        return bytes
+    elif isinstance(yaml_value, str):
+        return str
+    elif isinstance(yaml_value, list):
+        return yaml_list
+    elif isinstance(yaml_value, tuple):
+        return yaml_tuple
+    elif isinstance(yaml_value, type(None)):
+        return yaml_none
+    elif isinstance(yaml_value, datetime):
+        return yaml_timestamp
+    else:
+        raise Exception("Can not handle type {}".format(type(yaml_value)))
+
+"""
+!!int 	int or long (int in Python 3)
+!!omap, !!pairs 	list of pairs
+!!!str 	str or unicode (str in Python 3)
+Python-specific tags
+!!python/bytes 	(bytes in Python 3)
+!!python/unicode 	unicode (str in Python 3)
+!!python/long 	long (int in Python 3)
+"""
 
 
 def make_parser(config):
     parser = argparse.ArgumentParser()
     for key, value in config.items():
-        parser.add_argument("-{}".format(key), default=value, type=type(value))
+        parser.add_argument("-{}".format(key), default=value, type=init_type_check(value))
     return parser
 
 
