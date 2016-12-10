@@ -1,12 +1,15 @@
+import sys
 import argparse
 from datetime import datetime
-from io import StringIO
+if sys.version_info[0] < 3:
+    from StringIO import StringIO
+else:
+    from io import StringIO
 
 import yaml
 
 
 def yaml_parse_value(type_to_enforce, value):
-    print(value)
     try:
         parsed = yaml.load(StringIO("{} {}".format(type_to_enforce, value)))
         return parsed
@@ -22,8 +25,18 @@ def yaml_parse_value(type_to_enforce, value):
         raise ValueError()
 
 
-def init_type_check(yaml_value):
+def init_type_parser(yaml_value):
+    """
+    Type of command line argument should match the type of same argument in yaml file.
+    This function uses the type of the yaml argument to identify the correct parser for command line parsing.
+    :param yaml_value:
+    :return:
+    """
+
+    # below are a bunch of functions that can be used to parse strings into specific data types
+    # they are all separated into their own function with short names to get nicer output from argparse
     def yaml_bool(value):
+        print(yaml_parse_value("!!bool", value))
         return yaml_parse_value("!!bool", value)
 
     def yaml_list(value):
@@ -38,44 +51,34 @@ def init_type_check(yaml_value):
     def yaml_timestamp(value):
         return yaml_parse_value("!!timestamp", value)
 
-    if isinstance(yaml_value, bool):   # must be placed before int typecheck, because isinstance(False, int) == True
-        return yaml_bool
-    elif isinstance(yaml_value, int):
-        return int
-    elif isinstance(yaml_value, float):
-        return float
-    elif isinstance(yaml_value, complex):
-        return complex
-    elif isinstance(yaml_value, bytes):  # todo write test
-        return bytes
-    elif isinstance(yaml_value, str):
-        return str
-    elif isinstance(yaml_value, list):
-        return yaml_list
-    elif isinstance(yaml_value, tuple):
-        return yaml_tuple
-    elif isinstance(yaml_value, type(None)):
-        return yaml_none
-    elif isinstance(yaml_value, datetime):
-        return yaml_timestamp
-    else:
-        raise Exception("Can not handle type {}".format(type(yaml_value)))
+    def yaml_bytes(value):
+        return yaml_parse_value("!!python", value)
 
-"""
-!!int 	int or long (int in Python 3)
-!!omap, !!pairs 	list of pairs
-!!!str 	str or unicode (str in Python 3)
-Python-specific tags
-!!python/bytes 	(bytes in Python 3)
-!!python/unicode 	unicode (str in Python 3)
-!!python/long 	long (int in Python 3)
-"""
+    # list of tuples of (type_to_parse, parser) for most of the data types that can be in a yaml file
+    # for most simple data types, use built-in methods, if not possible let yaml do the parsing
+    # pairs and dict are generally not supported by this library, bytes can not be supplied as a command line argument
+    type_parsers = [(bool, yaml_bool), (int, int), (float, float), (complex, complex), (str, str),
+                    (type(None), yaml_none), (datetime, yaml_timestamp), (list, yaml_list), (tuple, yaml_tuple)]
+
+    for type_to_parse, parser in type_parsers:
+        if isinstance(yaml_value, type_to_parse):
+            return parser
+
+    # some of the yaml types are specific to python2, let's be nice and handle those as well
+    if sys.version_info[0] < 3:
+        type_parsers = [(long, long), (unicode, unicode)]
+        for type_to_parse, parser in type_parsers:
+            if isinstance(yaml_value, type_to_parse):
+                return parser
+
+    # have not found a parser
+    raise Exception("Can not handle type {}".format(type(yaml_value)))
 
 
 def make_parser(config):
     parser = argparse.ArgumentParser()
     for key, value in config.items():
-        parser.add_argument("-{}".format(key), default=value, type=init_type_check(value))
+        parser.add_argument("-{}".format(key), default=value, type=init_type_parser(value))
     return parser
 
 

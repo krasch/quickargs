@@ -21,6 +21,7 @@ def create_yaml_and_parse_arguments(yaml_params, command_line_params):
 # Tests for string parameters, in yaml files of various complexity / nestedness
 ###################################################################
 
+
 @raises(SystemExit)
 def test_illegal_commmandline_param():
     yaml_params = {"key1": "yaml_value_key1"}
@@ -127,6 +128,7 @@ def test_nested_overwrite_deep():
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
 
+
 #####################################################
 # Tests for types
 ######################################################
@@ -149,6 +151,27 @@ def test_int_command_line_type_wrong():
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
+def test_long_py2_only():
+    if sys.version_info[0] < 3:
+        yaml_params = {"key1": long(123)}
+        command_line_params = ["-key1=234"]
+        expected = {"key1": long(234)}
+
+        actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+        assert_dict_equal(expected, actual)
+
+
+def test_long_command_line_type_wrong_py2_only():
+    if sys.version_info[0] < 3:
+        yaml_params = {"key1": long(123)}
+        command_line_params = ["-key1=hallo"]
+        try:
+            create_yaml_and_parse_arguments(yaml_params, command_line_params)
+        except SystemExit:
+            return
+        assert False, "Did not raise SystemExit"
+
+
 def test_float():
     yaml_params = {"key1": 123.0}
     command_line_params = ["-key1=234.0"]
@@ -164,6 +187,8 @@ def test_float_command_line_type_wrong():
     command_line_params = ["-key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
 def test_complex():
     yaml_params = {"key1": 37-880j}
     command_line_params = ["-key1=44-880j"]
@@ -180,6 +205,7 @@ def test_float_command_line_type_wrong():
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
+
 def test_bool():
     yaml_params = {"key1": True}
     command_line_params = ["-key1=False"]
@@ -189,7 +215,7 @@ def test_bool():
     assert_dict_equal(expected, actual)
 
 
-def test_bool_alternative_true():
+def test_bool_alternative_false():
     yaml_params = {"key1": True}
     command_line_params = ["-key1=No"]
     expected = {"key1": False}
@@ -204,6 +230,63 @@ def test_bool_command_line_type_wrong():
     command_line_params = ["-key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+def test_none():
+    yaml_params = {"key1": None}
+    command_line_params = ["-key1=None"]
+    expected = {"key1": None}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+def test_none_overwrite():
+    yaml_params = {"key1": None}
+    command_line_params = ["-key1=value"]
+    expected = {"key1": None}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+def test_timestamp():
+    time_old = datetime.now()
+    time_new = time_old + timedelta(hours=1)
+
+    yaml_params = {"key1": time_old}
+    command_line_params = ["-key1={}".format(time_new)]
+    expected = {"key1": time_new}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+@raises(SystemExit)
+def test_timestamp_command_line_type_wrong():
+    yaml_params = {"key1": datetime.now()}
+    command_line_params = ["-key1=hallo"]
+
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+"""
+def test_bytes():
+    yaml_params = {"key1": b"value"}
+    command_line_params = ["-key1=b'123'"]
+    expected = {"key1": "test"}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
+"""
+
+def test_unicode():
+    yaml_params = {"key1": u"test"}
+    command_line_params = ["-key1=234"]
+    expected = {"key1": "234"}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
 
 
 def test_list_of_strings():
@@ -222,7 +305,6 @@ def test_list_of_ints():
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
-
 
 
 def test_list_of_mixed_types():
@@ -315,47 +397,6 @@ def test_tuple_command_line_type_wrong():
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
-def test_none():
-    yaml_params = {"key1": None}
-    command_line_params = ["-key1=None"]
-    expected = {"key1": None}
-
-    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
-    assert_dict_equal(expected, actual)
-
-
-def test_none_overwrite():
-    yaml_params = {"key1": None}
-    command_line_params = ["-key1=value"]
-    expected = {"key1": None}
-
-    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
-    assert_dict_equal(expected, actual)
-
-
-
-
-def test_timestamp():
-    time_old = datetime.now()
-    time_new = time_old + timedelta(hours=1)
-
-    yaml_params = {"key1": time_old}
-    command_line_params = ["-key1={}".format(time_new)]
-    expected = {"key1": time_new}
-
-    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
-    assert_dict_equal(expected, actual)
-
-
-@raises(SystemExit)
-def test_timestamp_command_line_type_wrong():
-    yaml_params = {"key1": datetime.now()}
-    command_line_params = ["-key1=hallo"]
-
-    create_yaml_and_parse_arguments(yaml_params, command_line_params)
-"""
-
-"""
 #############################################
 # Tests for some of the utility functions
 ############################################
