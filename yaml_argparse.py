@@ -1,12 +1,13 @@
 import sys
 import argparse
 from datetime import datetime
+
+import yaml
+
 if sys.version_info[0] < 3:
     from StringIO import StringIO
 else:
     from io import StringIO
-
-import yaml
 
 
 def yaml_parse_value(type_to_enforce, value):
