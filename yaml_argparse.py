@@ -6,7 +6,7 @@ import yaml
 def make_parser(config):
     parser = argparse.ArgumentParser()
     for key, value in config.items():
-        parser.add_argument("-{}".format(key), default=value)
+        parser.add_argument("-{}".format(key), default=value, type=type(value))
     return parser
 
 

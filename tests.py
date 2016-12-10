@@ -16,6 +16,9 @@ def create_yaml_and_parse_arguments(yaml_params, command_line_params):
 
     return config
 
+"""
+Tests for string parameters, in yaml files of various complexity
+"""
 
 @raises(SystemExit)
 def test_illegal_commmandline_param():
@@ -123,6 +126,10 @@ def test_nested_overwrite_deep():
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
 
+"""
+Tests for other types but string
+"""
+
 
 def test_int():
     yaml_params = {"key1": 123}
@@ -131,6 +138,19 @@ def test_int():
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
+
+
+@raises(SystemExit)
+def test_int_wrong_command_line_type():
+    yaml_params = {"key1": 123}
+    command_line_params = ["-key1=hallo"]
+
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+"""
+Tests for some of the utility functions
+"""
 
 
 def test_flatten_dict_empty():
