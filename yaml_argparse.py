@@ -50,7 +50,7 @@ def flatten_dict(dict_to_flatten):
 
     def recursive_flatten(current_key_hierarchy, value):
         if isinstance(value, dict):
-            sub_dicts = [recursive_flatten(current_key_hierarchy+[key], val) for key, val in value.items()]
+            sub_dicts = [recursive_flatten(current_key_hierarchy + [key], val) for key, val in value.items()]
             return merge_dicts(sub_dicts)
         else:
             return {tuple(current_key_hierarchy): value}
@@ -72,4 +72,3 @@ def unflatten_dict(dict_to_unflatten):
         recursive_set_value(unflattened, key_hierarchy, value)
 
     return unflattened
-
