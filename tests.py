@@ -20,7 +20,7 @@ def create_yaml_and_parse_arguments(yaml_params, command_line_params):
 @raises(SystemExit)
 def test_illegal_commmandline_param():
     yaml_params = {"key1": "yaml_value_key1"}
-    command_line_params = {"not_existing": "cmd_value"}
+    command_line_params = ["-not_existing=cmd_value"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
@@ -123,6 +123,14 @@ def test_nested_overwrite_deep():
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
 
+
+def test_int():
+    yaml_params = {"key1": 123}
+    command_line_params = ["-key1=234"]
+    expected = {"key1": 234}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
 
 
 def test_flatten_dict_empty():
