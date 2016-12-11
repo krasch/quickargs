@@ -7,8 +7,8 @@ from functools import wraps
 import yaml
 from nose.tools import assert_dict_equal, raises, nottest
 
-from yaml_argparse import parse_command_line_arguments, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    IntegrateCommandLineArgumentsLoader, init_type_parser, ArgumentWithoutNameException
+from yaml_argparse import parse_args, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
+    Loader, init_type_parser, ArgumentWithoutNameException
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -50,7 +50,7 @@ def create_yaml_and_parse_arguments(yaml_config, command_line_params):
             yaml_config = yaml.load(f)
 
     with set_sys_argv(command_line_params):
-        config = parse_command_line_arguments(yaml_config)
+        config = parse_args(yaml_config)
     return config
 
 
@@ -547,7 +547,7 @@ def test_with_supplied_arguments():
         with open(temp_file) as f:
             yaml_params = yaml.load(f)
 
-    actual = parse_command_line_arguments(yaml_params, command_line_params)
+    actual = parse_args(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
 
 
@@ -559,7 +559,7 @@ def test_loader_from_file():
     with temp_yaml_file(yaml_params) as temp_file:
         with open(temp_file) as f:
             with set_sys_argv(command_line_params):
-                actual = yaml.load(f, Loader=IntegrateCommandLineArgumentsLoader)
+                actual = yaml.load(f, Loader=Loader)
 
     assert_dict_equal(expected, actual)
 
@@ -573,7 +573,7 @@ def test_loader_from_stringio():
         with open(temp_file) as f:
             stream = StringIO(f.read())
             with set_sys_argv(command_line_params):
-                actual = yaml.load(stream, Loader=IntegrateCommandLineArgumentsLoader)
+                actual = yaml.load(stream, Loader=Loader)
 
     assert_dict_equal(expected, actual)
 
