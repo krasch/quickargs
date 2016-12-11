@@ -1,6 +1,7 @@
 ![Build Status](https://travis-ci.org/krasch/yaml_argparse.svg)
 
-Take a yaml config file and build a command line interface around it.
+Takes a yaml config file and builds a parser for command line arguments around it. Supports nested arguments and
+auto-enforces types of supplied command line parameters.
 
 #### This config file...
 
@@ -13,7 +14,7 @@ logging:
 
 #### ... will give you this command line interface
 
-```yaml
+```
 usage: main.py [-h] [-input_dir INPUT_DIR] [-logging.file LOGGING.FILE]
                [-logging.level LOGGING.LEVEL]
 
@@ -63,95 +64,80 @@ pip install -r requirements.txt
 
 ```python
 import yaml
-import ycli
+import quickargs
 
 with open("config.yaml") as f:
     config = yaml.load(f)
-config = ycli.parse_command_line_arguments(config)
+config = quickargs.parse_args(config)
 ```
 
-#### Or just supply ycli's custom yaml loader
+#### Or just supply quickargs's custom yaml loader
 
 ###### main.py
 
 ```python
 import yaml
-import ycli
+import quickargs
 
 with open("config.yaml") as f:
-    config = yaml.load(f, Loader=ycli.CommandLineParser)
+    config = yaml.load(f, Loader=quickargs.YAMLLoader)
 ```
 
 
-#### Resulting command line interface
+#### Deeply nested arguments are no problem
 
-###### python main.py -h
+###### config.yaml
 
-```
-usage: main.py [-h] [-input.images INPUT.IMAGES] [-input.labels INPUT.LABELS]
-               [-logfile LOGFILE] [-model.thresholds MODEL.THRESHOLDS]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -input.images INPUT.IMAGES
-                        default: data/images
-  -input.labels INPUT.LABELS
-                        default: data/labels
-  -logfile LOGFILE      default: output.log
-  -model.thresholds MODEL.THRESHOLDS
-                        default: [0.1, 0.2, 0.5, 1.0]
-
+```yaml
+key1:
+  key2:
+    key3:
+      key4: value
 ```
 
-#### Supply some command line arguments
-
-###### python main.py -logfile=out.log
+###### python main.py -key1.key2.key3.key4=other_value
 
 ```
-{'input': {'images': 'data/images', 'labels': 'data/labels'},
- 'logfile': 'out.log',
- 'loglevel': 4,
- 'model': {'thresholds': [0.1, 0.2, 0.5, 1.0]}}
+{'key1': {'key2': {'key3': {'key4': 'other_value'}}}}
 ```
 
-#### Override nested arguments
-
-###### python main.py -input.images=other_image_folder
-
-```
-{'input': {'images': 'other_image_folder', 'labels': 'data/labels'},
- 'logfile': 'output.log',
- 'model': {'thresholds': [0.1, 0.2, 0.5, 1.0]}}
-```
-
-#### Types are enforced
-
-###### python main.py -loglevel=WARNING
-
-```
-usage: main.py [-h] [-input.images INPUT.IMAGES] [-input.labels INPUT.LABELS]
-               [-logfile LOGFILE] [-loglevel LOGLEVEL]
-               [-model.thresholds MODEL.THRESHOLDS]
-main.py: error: argument -loglevel: invalid int value: 'WARNING'
-```
 
 #### Most yaml types, including sequences are supported
 
-###### python main.py -model.thresholds=[0.0,1.0]
+###### config.yaml
+
+```yaml
+thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
+```
+
+###### python main.py -model.thresholds='[0.0, 1.0]'
 
 ```
-{'input': {'images': 'data/images', 'labels': 'data/labels'},
- 'logfile': 'output.log',
- 'loglevel': 4,
- 'model': {'thresholds': [0.0, 1.0]}}
+{'thresholds': [0.0, 0.5, 1.0]}
 ```
 
 #### However, types within sequences are not enforced
 
+###### python main.py -thresholds=[a,b,c]
+
+```
+{'thresholds': ['a', 'b', 'c']}
+```
+
 #### You can even pass references to functions or classes (your own or builtins)
 
+###### config.yaml
 
-## Example with all supported data types
+```yaml
+function_to_call: !!python/name:enumerate
+```
+
+###### python main.py -function_to_call=quickargs.parse_args
+```
+{'function_to_call': <function parse_args at 0x7f1993902b70>}
+```
+
+## Example with all supported types
 
 
 ## Some gotchas
