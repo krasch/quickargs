@@ -1,24 +1,66 @@
 ![Build Status](https://travis-ci.org/krasch/yaml_argparse.svg)
 
-Take a yaml config file as basis and make all parameters in the yaml file available as argparse parameters.
-User can overwrite yaml config using command line arguments.
+Take a yaml config file and build a command line interface around it.
 
-#### Example yaml config file
-
-###### config.yaml
+#### This config file...
 
 ```yaml
-input:
-  images: data/images
-  labels: data/labels
-model:
-  thresholds: [0.1, 0.2, 0.5, 1.0]
-logfile: output.log
+input_dir: data
+logging:
+    file: output.log
+    level: 4
 ```
 
-#### Load the yaml config, then parse command line arguments
+#### ... will give you this command line interface
+
+```yaml
+usage: main.py [-h] [-input_dir INPUT_DIR] [-logging.file LOGGING.FILE]
+               [-logging.level LOGGING.LEVEL]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -input_dir INPUT_DIR  default: data
+  -logging.file LOGGING.FILE
+                        default: output.log
+  -logging.level LOGGING.LEVEL
+                        default: 4
+```
+
+#### Supply command line arguments to override values coming from the config file
+
+###### python main.py -logging.file=other_log.txt
+
+```
+{'input_dir': 'data', 'logging': {'file': 'other_log.txt', 'level': 4}}
+```
+
+#### Enforces the types used in the yaml file
+
+###### python main.py -logging.level=WARNING
+
+```
+usage: main.py [-h] [-input_dir INPUT_DIR] [-logging.file LOGGING.FILE]
+               [-logging.level LOGGING.LEVEL]
+main.py: error: argument -logging.level: invalid int value: 'WARNING'
+```
+
+###### python main.py -logging.level=0
+
+```
+{'input_dir': 'data', 'logging': {'file': 'output.log', 'level': 0}}
+```
+## Installation
+
+```
+pip install -r requirements.txt
+```
+
+## Usage
+
+#### Load the yaml config and parse command line arguments
 
 ###### main.py
+
 ```python
 import yaml
 import ycli
@@ -26,13 +68,9 @@ import ycli
 with open("config.yaml") as f:
     config = yaml.load(f)
 config = ycli.parse_command_line_arguments(config)
-
-# pretty printing the resulting config
-import pprint
-pprint.pprint(config)
 ```
 
-#### Or just load and parse in one swoop
+#### Or just supply ycli's custom yaml loader
 
 ###### main.py
 
@@ -41,11 +79,7 @@ import yaml
 import ycli
 
 with open("config.yaml") as f:
-    config = yaml.load(f, Loader=ycli.IntegrateCommandLineArgumentsLoader)
-
-# pretty printing the resulting config
-import pprint
-pprint.pprint(config)
+    config = yaml.load(f, Loader=ycli.CommandLineParser)
 ```
 
 
