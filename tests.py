@@ -1,26 +1,57 @@
 from tempfile import NamedTemporaryFile
 import sys
 from datetime import datetime, timedelta
+from contextlib import contextmanager
 
 import yaml
 from nose.tools import assert_dict_equal, raises
 
-from yaml_argparse import parse_arguments_based_on_yaml, unflatten_dict, flatten_dict
+from yaml_argparse import parse_command_line_arguments, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
+    IntegrateCommandLineArgumentsLoader
 
+if sys.version_info[0] < 3:
+    from StringIO import StringIO
+else:
+    from io import StringIO
 
-def create_yaml_and_parse_arguments(yaml_params, command_line_params):
-    sys.argv[1:] = command_line_params    # pretend params come directly from the command line
-
-    with NamedTemporaryFile("w") as temp_file:
-        yaml.dump(yaml_params, temp_file, default_flow_style=False)
-        config = parse_arguments_based_on_yaml(temp_file.name)
-
-    return config
-
-####################################################################
-# Tests for string parameters, in yaml files of various complexity / nestedness
+###################################################################
+# convenience methods for running tests
 ###################################################################
 
+
+@contextmanager
+def temp_yaml_file(yaml_config):
+    with NamedTemporaryFile("w") as temp_file:
+        yaml.dump(yaml_config, temp_file, default_flow_style=False)
+        yield temp_file.name
+
+
+@contextmanager
+def set_sys_argv(command_line_params):
+    """
+    set and most IMPORTANTLY unset command line parameters, otherwise they can still be set for the next test
+    :param command_line_params:
+    :return:
+    """
+    sys.argv[1:] = command_line_params
+    yield
+    sys.argv[1:] = []
+
+
+def create_yaml_and_parse_arguments(yaml_config, command_line_params):
+    # dumping and loading just to make sure to pass it through yaml once
+    with temp_yaml_file(yaml_config) as temp_file:
+        with open(temp_file) as f:
+            yaml_config = yaml.load(f)
+
+    with set_sys_argv(command_line_params):
+        config = parse_command_line_arguments(yaml_config)
+    return config
+
+
+####################################################################################
+# Tests for string parameters, in yaml files of various complexity / nestedness
+####################################################################################
 
 @raises(SystemExit)
 def test_illegal_commmandline_param():
@@ -270,15 +301,16 @@ def test_timestamp_command_line_type_wrong():
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
-"""
-def test_bytes():
-    yaml_params = {"key1": b"value"}
-    command_line_params = ["-key1=b'123'"]
-    expected = {"key1": "test"}
+@raises(UnsupportedYAMLTypeException)
+def test_bytes_py3_only():
+    if sys.version_info[0] >= 3:
+        yaml_params = {"key1": b"value"}
+        command_line_params = ["-key1=b'123'"]
+        create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    else:
+        # always succeed for python 2
+        raise UnsupportedYAMLTypeException()
 
-    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
-    assert_dict_equal(expected, actual)
-"""
 
 def test_unicode():
     yaml_params = {"key1": u"test"}
@@ -398,6 +430,52 @@ def test_tuple_command_line_type_wrong():
 
 
 #############################################
+# test integration with yaml
+############################################
+
+# pass a list of arguments, instead of taking the ones from sys
+def test_with_supplied_arguments():
+    yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
+    command_line_params = ["-key1=cmd_value_key1", "-key2.key2_2=7"]
+    expected = {"key1": "cmd_value_key1", "key2": {"key2_1": 21, "key2_2": 7}}
+
+    # dumping and loading just to make sure to pass it through yaml once
+    with temp_yaml_file(yaml_params) as temp_file:
+        with open(temp_file) as f:
+            yaml_params = yaml.load(f)
+
+    actual = parse_command_line_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+def test_loader_from_file():
+    yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
+    command_line_params = ["-key1=cmd_value_key1", "-key2.key2_2=7"]
+    expected = {"key1": "cmd_value_key1", "key2": {"key2_1": 21, "key2_2": 7}}
+
+    with temp_yaml_file(yaml_params) as temp_file:
+        with open(temp_file) as f:
+            with set_sys_argv(command_line_params):
+                actual = yaml.load(f, Loader=IntegrateCommandLineArgumentsLoader)
+
+    assert_dict_equal(expected, actual)
+
+
+def test_loader_from_stringio():
+    yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
+    command_line_params = ["-key1=cmd_value_key1", "-key2.key2_2=7"]
+    expected = {"key1": "cmd_value_key1", "key2": {"key2_1": 21, "key2_2": 7}}
+
+    with temp_yaml_file(yaml_params) as temp_file:
+        with open(temp_file) as f:
+            stream = StringIO(f.read())
+            with set_sys_argv(command_line_params):
+                actual = yaml.load(stream, Loader=IntegrateCommandLineArgumentsLoader)
+
+    assert_dict_equal(expected, actual)
+
+
+#############################################
 # Tests for some of the utility functions
 ############################################
 
@@ -459,12 +537,3 @@ def test_unflatten_dict_nested():
 
     actual = unflatten_dict(dict_to_unflatten)
     assert_dict_equal(expected, actual)
-
-
-"""
-def test():
-    sys.argv[1:] = []
-    config = parse_arguments_based_on_yaml("test2.yaml")
-    print(config)
-    assert(False)
-"""
