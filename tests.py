@@ -2,12 +2,13 @@ from tempfile import NamedTemporaryFile
 import sys
 from datetime import datetime, timedelta
 from contextlib import contextmanager
+from functools import wraps
 
 import yaml
-from nose.tools import assert_dict_equal, raises
+from nose.tools import assert_dict_equal, raises, nottest
 
 from yaml_argparse import parse_command_line_arguments, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    IntegrateCommandLineArgumentsLoader
+    IntegrateCommandLineArgumentsLoader, init_type_parser, ArgumentWithoutNameException
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -22,7 +23,11 @@ else:
 @contextmanager
 def temp_yaml_file(yaml_config):
     with NamedTemporaryFile("w") as temp_file:
-        yaml.dump(yaml_config, temp_file, default_flow_style=False)
+        if isinstance(yaml_config, str):
+            with open(temp_file.name, "w") as f:
+                f.write(yaml_config)
+        else:
+            yaml.dump(yaml_config, temp_file, default_flow_style=False)
         yield temp_file.name
 
 
@@ -52,12 +57,6 @@ def create_yaml_and_parse_arguments(yaml_config, command_line_params):
 ####################################################################################
 # Tests for string parameters, in yaml files of various complexity / nestedness
 ####################################################################################
-
-@raises(SystemExit)
-def test_illegal_commmandline_param():
-    yaml_params = {"key1": "yaml_value_key1"}
-    command_line_params = ["-not_existing=cmd_value"]
-    create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_one_string_no_overwrite():
@@ -123,6 +122,20 @@ def test_multiple_strings_all_overwrite():
     assert_dict_equal(expected, actual)
 
 
+@raises(SystemExit)
+def test_illegal_commmandline_param():
+    yaml_params = {"key1": "yaml_value_key1"}
+    command_line_params = ["-not_existing=cmd_value"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+@raises(ArgumentWithoutNameException)
+def test_no_key():
+    yaml_params = ["123"]
+    command_line_params = []
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
 def test_nested_no_overwrite():
     yaml_params = {"key1": {"key1_1": "yaml_value_key1_1"}}
     command_line_params = []
@@ -183,24 +196,28 @@ def test_int_command_line_type_wrong():
 
 
 def test_long_py2_only():
-    if sys.version_info[0] < 3:
-        yaml_params = {"key1": long(123)}
-        command_line_params = ["-key1=234"]
-        expected = {"key1": long(234)}
+    if sys.version_info[0] >=3:
+        return
 
-        actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
-        assert_dict_equal(expected, actual)
+    yaml_params = {"key1": long(123)}
+    command_line_params = ["-key1=234"]
+    expected = {"key1": long(234)}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
 
 
 def test_long_command_line_type_wrong_py2_only():
-    if sys.version_info[0] < 3:
-        yaml_params = {"key1": long(123)}
-        command_line_params = ["-key1=hallo"]
-        try:
-            create_yaml_and_parse_arguments(yaml_params, command_line_params)
-        except SystemExit:
-            return
-        assert False, "Did not raise SystemExit"
+    if sys.version_info[0] >= 3:
+        return
+
+    yaml_params = {"key1": long(123)}
+    command_line_params = ["-key1=hallo"]
+    try:
+        create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    except SystemExit:
+        return
+    assert False, "Did not raise SystemExit"
 
 
 def test_float():
@@ -301,15 +318,17 @@ def test_timestamp_command_line_type_wrong():
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
-@raises(UnsupportedYAMLTypeException)
 def test_bytes_py3_only():
-    if sys.version_info[0] >= 3:
-        yaml_params = {"key1": b"value"}
-        command_line_params = ["-key1=b'123'"]
-        create_yaml_and_parse_arguments(yaml_params, command_line_params)
-    else:
-        # always succeed for python 2
-        raise UnsupportedYAMLTypeException()
+    if sys.version_info[0] < 3:
+        return
+
+    yaml_params = "key1: !!python/bytes test"
+    command_line_params = ["-key1=b'123'"]
+    expected = {"key1": b"123"}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    # pyyaml does something weird with the bytes, only test type
+    assert isinstance(actual["key1"], bytes)
 
 
 def test_unicode():
@@ -429,10 +448,94 @@ def test_tuple_command_line_type_wrong():
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
+def test_function():
+    yaml_params = "key1: !!python/name:tests.functionA"
+    command_line_params = ["-key1=tests.functionB"]
+    expected = functionB
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+def test_function_builtin():
+    yaml_params = "key1: !!python/name:int"
+    command_line_params = ["-key1=float"]
+    expected = float
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+@raises(SystemExit)
+def test_function_not_exist():
+    yaml_params = "key1: !!python/name:tests.functionA"
+    command_line_params = ["-key1=tests.not_existing"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+@raises(SystemExit)
+def test_function_pass_module():
+    yaml_params = "key1: !!python/name:tests.functionA"
+    command_line_params = ["-key1=yaml"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+def test_class():
+    yaml_params = "key1: !!python/name:tests.ClassA"
+    command_line_params = ["-key1=tests.ClassB"]
+    expected = ClassB
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+@raises(SystemExit)
+def test_class_not_exist():
+    yaml_params = "key1: !!python/name:tests.ClassA"
+    command_line_params = ["-key1=tests.not_existing"]
+    expected = ClassB
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+def test_module():
+    yaml_params = "key1: !!python/module:yaml.constructor"
+    command_line_params = ["-key1=yaml.composer"]
+    expected = yaml.composer
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+@raises(SystemExit)
+def test_module_pass_function():
+    yaml_params = "key1: !!python/module:yaml.constructor"
+    command_line_params = ["-key1=tests.functionA"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+@raises(SystemExit)
+def test_module_not_exist():
+    yaml_params = "key1: !!python/module:yaml.constructor"
+    command_line_params = ["-key1=yaml.blabla"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+"""
+
+"""
+def test_instantiate():
+    # warning, this should fail but does not
+    # instantiation of classes is not supported but no errors will be thrown
+    yaml_params = "key1: !ClassA\n name: test"
+    command_line_params = ["-key1=tests.ClassB"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+"""
+
 #############################################
 # test integration with yaml
 ############################################
 
+"""
 # pass a list of arguments, instead of taking the ones from sys
 def test_with_supplied_arguments():
     yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
@@ -537,3 +640,30 @@ def test_unflatten_dict_nested():
 
     actual = unflatten_dict(dict_to_unflatten)
     assert_dict_equal(expected, actual)
+
+
+##########################################################
+# References that are needed for some of the tests
+#########################################################
+
+
+class ClassA(yaml.YAMLObject):
+    yaml_tag = u'!ClassA'
+
+    def __init__(self, name):
+        self.name = name
+
+
+class ClassB(yaml.YAMLObject):
+    yaml_tag = u'!ClassB'
+
+    def __init__(self, name):
+        self.name = name
+
+
+def functionA():
+    pass
+
+
+def functionB():
+    pass
