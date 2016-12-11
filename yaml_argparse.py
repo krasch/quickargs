@@ -1,4 +1,5 @@
 import sys
+import inspect
 import argparse
 from datetime import datetime
 
@@ -79,21 +80,26 @@ def init_type_parser(yaml_value):
     def yaml_timestamp(value):
         return yaml_parse_value("!!timestamp", value)
 
+    def yaml_bytes(value):
+        print(type(value))
+        return yaml_parse_value("!!python/bytes", value)
+
     def yaml_python_name(value):
-        return yaml_parse_value("!!python/name", value)  # for passing module.name
+        return yaml_parse_value("!!python/name", value)  # for passing module.name (functions or classes)
+
+    def yaml_python_module(value):
+        return yaml_parse_value("!!python/module", value)  # for passing package.module
 
     # tuples of (type_to_parse, parser) for most of the data types that can be in a yaml file
     # for most simple data types, use built-in methods, if not possible let yaml do the parsing
     # pairs, dict and bytes data types don't work, bool must be before int because isinstance(True, int) == True
-    type_parsers = [(bool, yaml_bool), (int, int), (float, float), (complex, complex), (str, str),
+    type_parsers = [(bool, yaml_bool), (int, int), (float, float), (complex, complex), (str, str), (bytes, yaml_bytes),
                     (type(None), yaml_none), (datetime, yaml_timestamp), (list, yaml_list), (tuple, yaml_tuple)]
+
+    # is the yaml_value of any of these types?
     for type_to_parse, parser in type_parsers:
         if isinstance(yaml_value, type_to_parse):
             return parser
-
-    # some of the types can not be detected using isinstance
-    if hasattr(type_to_parse, '__call__'):
-        return yaml_python_name
 
     # some of the yaml types are specific to python2, let's be nice and handle those as well
     if sys.version_info[0] < 3:
@@ -101,6 +107,12 @@ def init_type_parser(yaml_value):
         for type_to_parse, parser in type_parsers:
             if isinstance(yaml_value, type_to_parse):
                 return parser
+
+    # some of the types can not be detected using isinstance
+    if inspect.ismodule(yaml_value):
+        return yaml_python_module
+    elif hasattr(type_to_parse, '__call__'):
+        return yaml_python_name
 
     # have not found a parser
     raise UnsupportedYAMLTypeException("Can not handle type {}".format(type(yaml_value)))
@@ -115,7 +127,7 @@ def yaml_parse_value(type_to_enforce, value):
     :return:
     """
     try:
-        if type_to_enforce == "!!python/name":
+        if type_to_enforce in ["!!python/name", "!!python/module"]:
             yaml_data = "{}:{}".format(type_to_enforce, value)
         else:
             yaml_data = "{} {}".format(type_to_enforce, value)
@@ -123,14 +135,14 @@ def yaml_parse_value(type_to_enforce, value):
         return parsed
     # catch some typical errors that can happen during parsing
     # raise a ValueError instead to get nicely formatted output from argparse
-    except KeyError:
-        raise ValueError()
-    except yaml.parser.ParserError:
-        raise ValueError()
-    except yaml.constructor.ConstructorError:
-        raise ValueError()
-    except AttributeError:
-        raise ValueError()
+    except KeyError as e:
+        raise ValueError(str(e))
+    except yaml.parser.ParserError as e:
+        raise ValueError(str(e))
+    except yaml.constructor.ConstructorError as e:
+        raise ValueError(str(e))
+    except AttributeError as e:
+        raise ValueError(str(e))
 
 
 def flatten_dict(dict_to_flatten):

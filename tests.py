@@ -2,12 +2,13 @@ from tempfile import NamedTemporaryFile
 import sys
 from datetime import datetime, timedelta
 from contextlib import contextmanager
+from functools import wraps
 
 import yaml
-from nose.tools import assert_dict_equal, raises
+from nose.tools import assert_dict_equal, raises, nottest
 
 from yaml_argparse import parse_command_line_arguments, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    IntegrateCommandLineArgumentsLoader
+    IntegrateCommandLineArgumentsLoader, init_type_parser
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -56,7 +57,8 @@ def create_yaml_and_parse_arguments(yaml_config, command_line_params):
 ####################################################################################
 # Tests for string parameters, in yaml files of various complexity / nestedness
 ####################################################################################
-"""
+
+
 @raises(SystemExit)
 def test_illegal_commmandline_param():
     yaml_params = {"key1": "yaml_value_key1"}
@@ -187,24 +189,28 @@ def test_int_command_line_type_wrong():
 
 
 def test_long_py2_only():
-    if sys.version_info[0] < 3:
-        yaml_params = {"key1": long(123)}
-        command_line_params = ["-key1=234"]
-        expected = {"key1": long(234)}
+    if sys.version_info[0] >=3:
+        return
 
-        actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
-        assert_dict_equal(expected, actual)
+    yaml_params = {"key1": long(123)}
+    command_line_params = ["-key1=234"]
+    expected = {"key1": long(234)}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    assert_dict_equal(expected, actual)
 
 
 def test_long_command_line_type_wrong_py2_only():
-    if sys.version_info[0] < 3:
-        yaml_params = {"key1": long(123)}
-        command_line_params = ["-key1=hallo"]
-        try:
-            create_yaml_and_parse_arguments(yaml_params, command_line_params)
-        except SystemExit:
-            return
-        assert False, "Did not raise SystemExit"
+    if sys.version_info[0] >= 3:
+        return
+
+    yaml_params = {"key1": long(123)}
+    command_line_params = ["-key1=hallo"]
+    try:
+        create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    except SystemExit:
+        return
+    assert False, "Did not raise SystemExit"
 
 
 def test_float():
@@ -305,15 +311,17 @@ def test_timestamp_command_line_type_wrong():
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
-@raises(UnsupportedYAMLTypeException)
 def test_bytes_py3_only():
-    if sys.version_info[0] >= 3:
-        yaml_params = {"key1": b"value"}
-        command_line_params = ["-key1=b'123'"]
-        create_yaml_and_parse_arguments(yaml_params, command_line_params)
-    else:
-        # always succeed for python 2
-        raise UnsupportedYAMLTypeException()
+    if sys.version_info[0] < 3:
+        return
+
+    yaml_params = "key1: !!python/bytes test"
+    command_line_params = ["-key1=b'123'"]
+    expected = {"key1": b"123"}
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
+    # pyyaml does something weird with the bytes, only test type
+    assert isinstance(actual["key1"], bytes)
 
 
 def test_unicode():
@@ -431,7 +439,6 @@ def test_tuple_command_line_type_wrong():
     command_line_params = ["-key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
-"""
 
 
 def test_function():
@@ -443,10 +450,26 @@ def test_function():
     assert actual == expected
 
 
+def test_function_builtin():
+    yaml_params = "key1: !!python/name:int"
+    command_line_params = ["-key1=float"]
+    expected = float
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
 @raises(SystemExit)
 def test_function_not_exist():
     yaml_params = "key1: !!python/name:tests.functionA"
     command_line_params = ["-key1=tests.not_existing"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+@raises(SystemExit)
+def test_function_pass_module():
+    yaml_params = "key1: !!python/name:tests.functionA"
+    command_line_params = ["-key1=yaml"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
@@ -467,9 +490,31 @@ def test_class_not_exist():
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
     assert actual == expected
-    
 
-"""
+
+def test_module():
+    yaml_params = "key1: !!python/module:yaml.constructor"
+    command_line_params = ["-key1=yaml.composer"]
+    expected = yaml.composer
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+@raises(SystemExit)
+def test_module_pass_function():
+    yaml_params = "key1: !!python/module:yaml.constructor"
+    command_line_params = ["-key1=tests.functionA"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+@raises(SystemExit)
+def test_module_not_exist():
+    yaml_params = "key1: !!python/module:yaml.constructor"
+    command_line_params = ["-key1=yaml.blabla"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
 #############################################
 # test integration with yaml
 ############################################
@@ -578,7 +623,7 @@ def test_unflatten_dict_nested():
 
     actual = unflatten_dict(dict_to_unflatten)
     assert_dict_equal(expected, actual)
-"""
+
 
 ##########################################################
 # References that are needed for some of the tests
