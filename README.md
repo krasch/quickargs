@@ -1,7 +1,7 @@
 ![Build Status](https://travis-ci.org/krasch/yaml_argparse.svg)
 
 Takes a yaml config file and builds a parser for command line arguments around it. Supports nested arguments and
-auto-enforces types of supplied command line parameters.
+auto-enforces parameter types.
 
 #### This config file...
 
@@ -32,6 +32,8 @@ optional arguments:
 ###### python main.py -logging.file=other_log.txt
 
 ```
+# Quickparse gives you a nested dict of parameters (just like yaml.load does).
+# The config file is not changed.
 {'input_dir': 'data', 'logging': {'file': 'other_log.txt', 'level': 4}}
 ```
 
@@ -101,6 +103,13 @@ key1:
 {'key1': {'key2': {'key3': {'key4': 'other_value'}}}}
 ```
 
+#### Of course you don't have to supply anything at all
+
+###### python main.py
+
+```
+{'key1': {'key2': {'key3': {'key4': 'value'}}}}
+```
 
 #### Most yaml types, including sequences are supported
 
@@ -110,13 +119,21 @@ key1:
 thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 ```
 
-###### python main.py -model.thresholds='[0.0, 1.0]'
+###### python main.py -model.thresholds='[0.0, 0.5, 1.0]'
 
 ```
 {'thresholds': [0.0, 0.5, 1.0]}
 ```
 
+(take care to use ' ' around your command line arguments if you include spaces in them)
+
 #### However, types within sequences are not enforced
+
+###### config.yaml
+
+```yaml
+thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
+```
 
 ###### python main.py -thresholds=[a,b,c]
 
@@ -139,13 +156,57 @@ function_to_call: !!python/name:enumerate
 
 ## Example with all supported types
 
+###### config.yaml
 
-## Some gotchas
+```yaml
+an_int: 3
+a_float: 3.0
+a_bool: True
+a_complex_number: 37-880j
 
-#### Tuples must be passed in square brackets
+a_date: 2016-12-11
 
-#### Instantiating of objects is not supported (but you will not get a type error)
+sequences:
+  a_list: [a, b, c]
+  # you must pass tuple arguments in square brackets on the command line
+  # they will still be proper tuples in the result
+  a_tuple: !!python/tuple (a, b)
 
-#### The YAML pair data type is not supported
+python:
+  a_function: !!python/name:yaml.load
+  a_class: !!python/name:yaml.loader.Loader
+  a_module: !!python/module:contextlib
+  # can be overwritten with any type
+  a_none: !!python/none
 
-#### The YAML None type can be overwritten by anything
+```
+
+```
+python main.py -an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a_date=2017-01-01 \
+               -sequences.a_list=[c,b,c] -sequences.a_tuple=[b,a] -python.a_function=enumerate \
+               -python.a_class=yaml.parser.Parser -python.a_module=yaml -python.a_none=1234
+```
+
+```
+{'a_bool': False,
+ 'a_complex_number': '42-111j',
+ 'a_date': datetime.date(2017, 1, 1),
+ 'a_float': 2.0,
+ 'an_int': 4,
+ 'python': {'a_class': <class 'yaml.parser.Parser'>,
+            'a_function': <class 'enumerate'>,
+            'a_module': <module 'yaml' from ....>,
+            'a_none': None},
+ 'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': '[b,a]'}}
+```
+
+## Un-supported types
+
+Following types are not supported at all:
+- !!python/dict (because it looks just like the rest of the yaml file)
+- !!pairs
+
+Following types are not enforced:
+- !!python/object:module.cls
+- !!python/object/new:module.cls
+- !!python/object/apply:module.f
