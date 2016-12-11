@@ -32,6 +32,8 @@ def parse_command_line_arguments(yaml_config, argv=None):
     # arguments must be the same as types of corresponding arguments in the yaml file
     parser = argparse.ArgumentParser()
     for key, value in yaml_config.items():
+        if len(key) == 0:
+            raise ArgumentWithoutNameException()
         parser.add_argument("-{}".format(key), default=value, type=init_type_parser(value))
 
     # parse the command line arguments and revert back from string keys to nested keys
@@ -81,7 +83,6 @@ def init_type_parser(yaml_value):
         return yaml_parse_value("!!timestamp", value)
 
     def yaml_bytes(value):
-        print(type(value))
         return yaml_parse_value("!!python/bytes", value)
 
     def yaml_python_name(value):
@@ -95,8 +96,6 @@ def init_type_parser(yaml_value):
     # pairs, dict and bytes data types don't work, bool must be before int because isinstance(True, int) == True
     type_parsers = [(bool, yaml_bool), (int, int), (float, float), (complex, complex), (str, str), (bytes, yaml_bytes),
                     (type(None), yaml_none), (datetime, yaml_timestamp), (list, yaml_list), (tuple, yaml_tuple)]
-
-    # is the yaml_value of any of these types?
     for type_to_parse, parser in type_parsers:
         if isinstance(yaml_value, type_to_parse):
             return parser
@@ -189,4 +188,8 @@ def unflatten_dict(dict_to_unflatten):
 
 
 class UnsupportedYAMLTypeException(Exception):
+    pass
+
+
+class ArgumentWithoutNameException(Exception):
     pass

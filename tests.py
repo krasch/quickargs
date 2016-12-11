@@ -8,7 +8,7 @@ import yaml
 from nose.tools import assert_dict_equal, raises, nottest
 
 from yaml_argparse import parse_command_line_arguments, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    IntegrateCommandLineArgumentsLoader, init_type_parser
+    IntegrateCommandLineArgumentsLoader, init_type_parser, ArgumentWithoutNameException
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -57,13 +57,6 @@ def create_yaml_and_parse_arguments(yaml_config, command_line_params):
 ####################################################################################
 # Tests for string parameters, in yaml files of various complexity / nestedness
 ####################################################################################
-
-
-@raises(SystemExit)
-def test_illegal_commmandline_param():
-    yaml_params = {"key1": "yaml_value_key1"}
-    command_line_params = ["-not_existing=cmd_value"]
-    create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_one_string_no_overwrite():
@@ -127,6 +120,20 @@ def test_multiple_strings_all_overwrite():
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
+
+
+@raises(SystemExit)
+def test_illegal_commmandline_param():
+    yaml_params = {"key1": "yaml_value_key1"}
+    command_line_params = ["-not_existing=cmd_value"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+@raises(ArgumentWithoutNameException)
+def test_no_key():
+    yaml_params = ["123"]
+    command_line_params = []
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_nested_no_overwrite():
@@ -513,12 +520,22 @@ def test_module_not_exist():
     yaml_params = "key1: !!python/module:yaml.constructor"
     command_line_params = ["-key1=yaml.blabla"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
+"""
 
+"""
+def test_instantiate():
+    # warning, this should fail but does not
+    # instantiation of classes is not supported but no errors will be thrown
+    yaml_params = "key1: !ClassA\n name: test"
+    command_line_params = ["-key1=tests.ClassB"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+"""
 
 #############################################
 # test integration with yaml
 ############################################
 
+"""
 # pass a list of arguments, instead of taking the ones from sys
 def test_with_supplied_arguments():
     yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
@@ -630,12 +647,18 @@ def test_unflatten_dict_nested():
 #########################################################
 
 
-class ClassA:
-    pass
+class ClassA(yaml.YAMLObject):
+    yaml_tag = u'!ClassA'
+
+    def __init__(self, name):
+        self.name = name
 
 
-class ClassB:
-    pass
+class ClassB(yaml.YAMLObject):
+    yaml_tag = u'!ClassB'
+
+    def __init__(self, name):
+        self.name = name
 
 
 def functionA():
