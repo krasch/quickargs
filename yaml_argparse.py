@@ -79,15 +79,21 @@ def init_type_parser(yaml_value):
     def yaml_timestamp(value):
         return yaml_parse_value("!!timestamp", value)
 
-    # list of tuples of (type_to_parse, parser) for most of the data types that can be in a yaml file
+    def yaml_python_name(value):
+        return yaml_parse_value("!!python/name", value)  # for passing module.name
+
+    # tuples of (type_to_parse, parser) for most of the data types that can be in a yaml file
     # for most simple data types, use built-in methods, if not possible let yaml do the parsing
     # pairs, dict and bytes data types don't work, bool must be before int because isinstance(True, int) == True
     type_parsers = [(bool, yaml_bool), (int, int), (float, float), (complex, complex), (str, str),
                     (type(None), yaml_none), (datetime, yaml_timestamp), (list, yaml_list), (tuple, yaml_tuple)]
-
     for type_to_parse, parser in type_parsers:
         if isinstance(yaml_value, type_to_parse):
             return parser
+
+    # some of the types can not be detected using isinstance
+    if hasattr(type_to_parse, '__call__'):
+        return yaml_python_name
 
     # some of the yaml types are specific to python2, let's be nice and handle those as well
     if sys.version_info[0] < 3:
@@ -109,7 +115,10 @@ def yaml_parse_value(type_to_enforce, value):
     :return:
     """
     try:
-        yaml_data = "{} {}".format(type_to_enforce, value)
+        if type_to_enforce == "!!python/name":
+            yaml_data = "{}:{}".format(type_to_enforce, value)
+        else:
+            yaml_data = "{} {}".format(type_to_enforce, value)
         parsed = yaml.load(StringIO(yaml_data))
         return parsed
     # catch some typical errors that can happen during parsing

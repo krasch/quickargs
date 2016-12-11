@@ -22,7 +22,11 @@ else:
 @contextmanager
 def temp_yaml_file(yaml_config):
     with NamedTemporaryFile("w") as temp_file:
-        yaml.dump(yaml_config, temp_file, default_flow_style=False)
+        if isinstance(yaml_config, str):
+            with open(temp_file.name, "w") as f:
+                f.write(yaml_config)
+        else:
+            yaml.dump(yaml_config, temp_file, default_flow_style=False)
         yield temp_file.name
 
 
@@ -52,7 +56,7 @@ def create_yaml_and_parse_arguments(yaml_config, command_line_params):
 ####################################################################################
 # Tests for string parameters, in yaml files of various complexity / nestedness
 ####################################################################################
-
+"""
 @raises(SystemExit)
 def test_illegal_commmandline_param():
     yaml_params = {"key1": "yaml_value_key1"}
@@ -427,8 +431,45 @@ def test_tuple_command_line_type_wrong():
     command_line_params = ["-key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
+"""
 
 
+def test_function():
+    yaml_params = "key1: !!python/name:tests.functionA"
+    command_line_params = ["-key1=tests.functionB"]
+    expected = functionB
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+@raises(SystemExit)
+def test_function_not_exist():
+    yaml_params = "key1: !!python/name:tests.functionA"
+    command_line_params = ["-key1=tests.not_existing"]
+    create_yaml_and_parse_arguments(yaml_params, command_line_params)
+
+
+def test_class():
+    yaml_params = "key1: !!python/name:tests.ClassA"
+    command_line_params = ["-key1=tests.ClassB"]
+    expected = ClassB
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+
+
+@raises(SystemExit)
+def test_class_not_exist():
+    yaml_params = "key1: !!python/name:tests.ClassA"
+    command_line_params = ["-key1=tests.not_existing"]
+    expected = ClassB
+
+    actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
+    assert actual == expected
+    
+
+"""
 #############################################
 # test integration with yaml
 ############################################
@@ -537,3 +578,24 @@ def test_unflatten_dict_nested():
 
     actual = unflatten_dict(dict_to_unflatten)
     assert_dict_equal(expected, actual)
+"""
+
+##########################################################
+# References that are needed for some of the tests
+#########################################################
+
+
+class ClassA:
+    pass
+
+
+class ClassB:
+    pass
+
+
+def functionA():
+    pass
+
+
+def functionB():
+    pass
