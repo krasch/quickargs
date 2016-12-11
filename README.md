@@ -3,7 +3,9 @@
 Take a yaml config file as basis and make all parameters in the yaml file available as argparse parameters.
 User can overwrite yaml config using command line arguments.
 
-#### Example yaml config
+#### Example yaml config file
+
+###### config.yaml
 
 ```yaml
 input:
@@ -14,21 +16,42 @@ model:
 logfile: output.log
 ```
 
-#### Load the config and parse command line parameters
+#### Load the yaml config, then parse command line arguments
 
+###### main.py
+```python
+import yaml
+import ycli
+
+with open("config.yaml") as f:
+    config = yaml.load(f)
+config = ycli.parse_command_line_arguments(config)
+
+# pretty printing the resulting config
+import pprint
+pprint.pprint(config)
+```
+
+#### Or just load and parse in one swoop
+
+###### main.py
 
 ```python
 import yaml
-from ycli import IntegrateCommandLineArgumentsLoader
+import ycli
 
 with open("config.yaml") as f:
-    config = yaml.load(f, Loader=IntegrateCommandLineArgumentsLoader)
+    config = yaml.load(f, Loader=ycli.IntegrateCommandLineArgumentsLoader)
 
-print(config)
+# pretty printing the resulting config
+import pprint
+pprint.pprint(config)
 ```
 
-#### main.py -h
 
+#### Resulting command line interface
+
+###### python main.py -h
 
 ```
 usage: main.py [-h] [-input.images INPUT.IMAGES] [-input.labels INPUT.LABELS]
@@ -46,9 +69,63 @@ optional arguments:
 
 ```
 
+#### Supply some command line arguments
 
-dicts are a problem
-tuples need to be passed in square brackets
-none can be overwritten by anything
-pairs is not supported, will have to throw exception todo
-bytes is untested
+###### python main.py -logfile=out.log
+
+```
+{'input': {'images': 'data/images', 'labels': 'data/labels'},
+ 'logfile': 'out.log',
+ 'loglevel': 4,
+ 'model': {'thresholds': [0.1, 0.2, 0.5, 1.0]}}
+```
+
+#### Override nested arguments
+
+###### python main.py -input.images=other_image_folder
+
+```
+{'input': {'images': 'other_image_folder', 'labels': 'data/labels'},
+ 'logfile': 'output.log',
+ 'model': {'thresholds': [0.1, 0.2, 0.5, 1.0]}}
+```
+
+#### Types are enforced
+
+###### python main.py -loglevel=WARNING
+
+```
+usage: main.py [-h] [-input.images INPUT.IMAGES] [-input.labels INPUT.LABELS]
+               [-logfile LOGFILE] [-loglevel LOGLEVEL]
+               [-model.thresholds MODEL.THRESHOLDS]
+main.py: error: argument -loglevel: invalid int value: 'WARNING'
+```
+
+#### Most yaml types, including sequences are supported
+
+###### python main.py -model.thresholds=[0.0,1.0]
+
+```
+{'input': {'images': 'data/images', 'labels': 'data/labels'},
+ 'logfile': 'output.log',
+ 'loglevel': 4,
+ 'model': {'thresholds': [0.0, 1.0]}}
+```
+
+#### However, types within sequences are not enforced
+
+#### You can even pass references to functions or classes (your own or builtins)
+
+
+## Example with all supported data types
+
+
+## Some gotchas
+
+#### Tuples must be passed in square brackets
+
+#### Instantiating of objects is not supported (but you will not get a type error)
+
+#### The YAML pair data type is not supported
+
+#### The YAML None type can be overwritten by anything
