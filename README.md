@@ -11,6 +11,15 @@ logging:
     file: output.log
     level: 4
 ```
+#### ... together with this main.py ...
+
+```python
+import yaml
+import quickargs
+
+with open("config.yaml") as f:
+    config = yaml.load(f, Loader=quickargs.YAMLLoader)
+```
 
 #### ... will give you this command line interface
 
@@ -27,17 +36,19 @@ optional arguments:
                         default: 4
 ```
 
-#### Supply command line arguments to override values coming from the config file
+
+#### Override settings using the command line
 
 ###### python main.py -logging.file=other_log.txt
 
+#### You get your merged yaml + command line parameters in a convenient dictionary
+
 ```
-# Quickparse gives you a nested dict of parameters (just like yaml.load does).
-# The config file is not changed.
+# exact same output format as normal yaml.load would produce
 {'input_dir': 'data', 'logging': {'file': 'other_log.txt', 'level': 4}}
 ```
 
-#### Enforces the types used in the yaml file
+#### The types used in the yaml file are automatically enforced
 
 ###### python main.py -logging.level=WARNING
 
@@ -69,19 +80,6 @@ import yaml
 import quickargs
 
 with open("config.yaml") as f:
-    config = yaml.load(f)
-config = quickargs.parse_args(config)
-```
-
-#### Or just supply quickargs's custom yaml loader
-
-###### main.py
-
-```python
-import yaml
-import quickargs
-
-with open("config.yaml") as f:
     config = yaml.load(f, Loader=quickargs.YAMLLoader)
 ```
 
@@ -103,7 +101,7 @@ key1:
 {'key1': {'key2': {'key3': {'key4': 'other_value'}}}}
 ```
 
-#### Of course you don't have to supply anything at all
+#### Of course it is fine to just call your program without any command line arguments
 
 ###### python main.py
 
@@ -121,11 +119,11 @@ thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 
 ###### python main.py -model.thresholds='[0.0, 0.5, 1.0]'
 
+(take care to use ' ' around your command line arguments if they include spaces)
+
 ```
 {'thresholds': [0.0, 0.5, 1.0]}
 ```
-
-(take care to use ' ' around your command line arguments if you include spaces in them)
 
 #### However, types within sequences are not enforced
 
@@ -146,12 +144,12 @@ thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 ###### config.yaml
 
 ```yaml
-function_to_call: !!python/name:enumerate
+function_to_call: !!python/name:yaml.dump
 ```
 
-###### python main.py -function_to_call=quickargs.parse_args
+###### python main.py -function_to_call=zip
 ```
-{'function_to_call': <function parse_args at 0x7f1993902b70>}
+{'function_to_call': <built-in function zip>}
 ```
 
 ## Example with all supported types
@@ -168,9 +166,9 @@ a_date: 2016-12-11
 
 sequences:
   a_list: [a, b, c]
-  # you must pass tuple arguments in square brackets on the command line
+  # for tuples you need to use square [] brackeds in the yaml and on the command line
   # they will still be proper tuples in the result
-  a_tuple: !!python/tuple (a, b)
+  a_tuple: !!python/tuple [a, b]
 
 python:
   a_function: !!python/name:yaml.load
@@ -178,7 +176,6 @@ python:
   a_module: !!python/module:contextlib
   # can be overwritten with any type
   a_none: !!python/none
-
 ```
 
 ```
@@ -197,7 +194,7 @@ python main.py -an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a
             'a_function': <class 'enumerate'>,
             'a_module': <module 'yaml' from ....>,
             'a_none': None},
- 'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': '[b,a]'}}
+ 'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': ('b','a')}}
 ```
 
 ## Un-supported types

@@ -11,7 +11,18 @@ else:
     from io import StringIO
 
 
-def parse_args(yaml_config, argv=None):
+class YAMLLoader(yaml.Loader):
+    """
+    Convenience class for loading yaml file and parsing command line arguments in one step
+    with open("config.yaml") as f:
+        config = yaml.load(f, Loader=quickargs.YAMLLoader)
+    """
+    def get_single_data(self):
+        data = super(YAMLLoader, self).get_single_data()
+        return merge_yaml_with_args(data)
+
+
+def merge_yaml_with_args(yaml_config, argv=None):
     """
     Parse command line arguments based on a supplied yaml config.
     For each parameter in the yaml config, a command line parameter is created. The supplied command line arguments
@@ -44,17 +55,6 @@ def parse_args(yaml_config, argv=None):
 
     # caller expects the original, nested config dictionary
     return unflatten_dict(cmd_config)
-
-
-class Loader(yaml.Loader):
-    """
-    Convenience class for loading yaml file and parsing command line arguments in one step
-    with open("config.yaml") as f:
-        config = yaml.load(f, Loader=CommandLineParser)
-    """
-    def get_single_data(self):
-        data = super(Loader, self).get_single_data()
-        return parse_args(data)
 
 
 def init_type_parser(yaml_value):
