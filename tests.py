@@ -7,8 +7,8 @@ from functools import wraps
 import yaml
 from nose.tools import assert_dict_equal, raises, nottest
 
-from yaml_argparse import parse_args, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    Loader, init_type_parser, ArgumentWithoutNameException
+from quickargs import merge_yaml_with_args, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
+    YAMLLoader, init_type_parser, ArgumentWithoutNameException
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -50,7 +50,7 @@ def create_yaml_and_parse_arguments(yaml_config, command_line_params):
             yaml_config = yaml.load(f)
 
     with set_sys_argv(command_line_params):
-        config = parse_args(yaml_config)
+        config = merge_yaml_with_args(yaml_config)
     return config
 
 
@@ -547,7 +547,7 @@ def test_with_supplied_arguments():
         with open(temp_file) as f:
             yaml_params = yaml.load(f)
 
-    actual = parse_args(yaml_params, command_line_params)
+    actual = merge_yaml_with_args(yaml_params, command_line_params)
     assert_dict_equal(expected, actual)
 
 
@@ -559,7 +559,7 @@ def test_loader_from_file():
     with temp_yaml_file(yaml_params) as temp_file:
         with open(temp_file) as f:
             with set_sys_argv(command_line_params):
-                actual = yaml.load(f, Loader=Loader)
+                actual = yaml.load(f, Loader=YAMLLoader)
 
     assert_dict_equal(expected, actual)
 
@@ -573,7 +573,7 @@ def test_loader_from_stringio():
         with open(temp_file) as f:
             stream = StringIO(f.read())
             with set_sys_argv(command_line_params):
-                actual = yaml.load(stream, Loader=Loader)
+                actual = yaml.load(stream, Loader=YAMLLoader)
 
     assert_dict_equal(expected, actual)
 
@@ -667,3 +667,142 @@ def functionA():
 
 def functionB():
     pass
+
+###########################################################
+# Unit tests corresponding to the examples in the readme
+##########################################################
+
+simple_conf = """
+input_dir: data
+logging:
+    file: output.log
+    level: 4"""
+
+
+def test_simple_config():
+    config = simple_conf
+    command_line_params = ["-logging.file=other_log.txt"]
+    expected = {'input_dir': 'data', 'logging': {'file': 'other_log.txt', 'level': 4}}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+@raises(SystemExit)
+def test_supply_wrong_loglevel():
+    config = simple_conf
+    command_line_params = ["-logging.level=WARNING"]
+    create_yaml_and_parse_arguments(config, command_line_params)
+
+
+def test_supply_correct_loglevel():
+    config = simple_conf
+    command_line_params = ["-logging.level=0"]
+    expected = {'input_dir': 'data', 'logging': {'file': 'output.log', 'level': 0}}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+nested_conf = """
+key1:
+  key2:
+    key3:
+      key4: value
+"""
+
+
+def test_deep_nest():
+    config = nested_conf
+    command_line_params = ["-key1.key2.key3.key4=other_value"]
+    expected = {"key1": {"key2": {"key3": {"key4": "other_value"}}}}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+def test_no_override():
+    config = nested_conf
+    command_line_params = []
+    expected = {"key1": {"key2": {"key3": {"key4": "value"}}}}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+sequence_conf = """
+thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
+"""
+
+
+def test_sequence():
+    config = sequence_conf
+    command_line_params = ["-thresholds=[0.0, 0.5, 1.0]"]
+    expected = {"thresholds": [0.0, 0.5, 1.0]}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+def test_sequence_types_in_sequence_not_enforced():
+    config = sequence_conf
+    command_line_params = ["-thresholds=[a,b,c]"]
+    expected = {"thresholds": ["a","b","c"]}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+function_conf = """
+function_to_call: !!python/name:yaml.dump
+"""
+
+
+def test_override_function():
+    config = function_conf
+    command_line_params = ["-function_to_call=zip"]
+    expected = {"function_to_call": zip}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
+
+
+all_types_conf = """
+an_int: 3
+a_float: 3.0
+a_bool: True
+a_complex_number: 37-880j
+
+a_date: 2016-12-11
+
+sequences:
+  a_list: [a, b, c]
+  # for tuples you need to use square [] brackeds in the yaml and on the command line
+  # they will still be proper tuples in the result
+  a_tuple: !!python/tuple [a, b]
+
+python:
+  a_function: !!python/name:yaml.load
+  a_class: !!python/name:yaml.loader.Loader
+  a_module: !!python/module:contextlib
+  # can be overwritten with any type
+  a_none: !!python/none
+"""
+
+
+def test_all_types():
+    config = all_types_conf
+    command_line_params = "-an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a_date=2017-01-01 "\
+               "-sequences.a_list=[c,b,c] -sequences.a_tuple=[b,a] -python.a_function=enumerate " \
+               "-python.a_class=yaml.parser.Parser -python.a_module=yaml -python.a_none=1234"
+    command_line_params = command_line_params.split()
+    expected = {'a_bool': False,
+ 'a_complex_number': '42-111j',
+ 'a_date': datetime.strptime("2017-01-01", "%Y-%m-%d").date(),
+ 'a_float': 2.0,
+ 'an_int': 4,
+ 'python': {'a_class': yaml.parser.Parser,
+            'a_function': enumerate,
+            'a_module': yaml,
+            'a_none': None},
+ 'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': ('b','a')}}
+
+    actual = create_yaml_and_parse_arguments(config, command_line_params)
+    assert_dict_equal(expected, actual)
