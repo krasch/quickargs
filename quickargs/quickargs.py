@@ -1,7 +1,7 @@
 import sys
 import inspect
 import argparse
-from datetime import datetime
+from datetime import date, time, datetime
 
 import yaml
 
@@ -11,7 +11,18 @@ else:
     from io import StringIO
 
 
-def parse_command_line_arguments(yaml_config, argv=None):
+class YAMLArgsLoader(yaml.Loader):
+    """
+    Convenience class for loading yaml file and parsing command line arguments in one step
+    with open("config.yaml") as f:
+        config = yaml.load(f, Loader=quickargs.YAMLArgsLoader)
+    """
+    def get_single_data(self):
+        data = super(YAMLArgsLoader, self).get_single_data()
+        return merge_yaml_with_args(data)
+
+
+def merge_yaml_with_args(yaml_config, argv=None):
     """
     Parse command line arguments based on a supplied yaml config.
     For each parameter in the yaml config, a command line parameter is created. The supplied command line arguments
@@ -31,10 +42,10 @@ def parse_command_line_arguments(yaml_config, argv=None):
     # instantiate an argparse parser based on the yaml config, enforce type checking such that types of user-supplied
     # arguments must be the same as types of corresponding arguments in the yaml file
     parser = argparse.ArgumentParser()
-    for key, value in yaml_config.items():
+    for key, val in sorted(yaml_config.items()):
         if len(key) == 0:
             raise ArgumentWithoutNameException()
-        parser.add_argument("-{}".format(key), default=value, type=init_type_parser(value))
+        parser.add_argument("-{}".format(key), default=val, type=init_type_parser(val), help="default: {}".format(val))
 
     # parse the command line arguments and revert back from string keys to nested keys
     argv = argv or sys.argv[1:]
@@ -44,17 +55,6 @@ def parse_command_line_arguments(yaml_config, argv=None):
 
     # caller expects the original, nested config dictionary
     return unflatten_dict(cmd_config)
-
-
-class IntegrateCommandLineArgumentsLoader(yaml.Loader):
-    """
-    Convenience class for loading yaml file and parsing command line arguments in one step
-    with open("config.yaml") as f:
-        config = yaml.load(f, Loader=IntegrateCommandLineArgumentsLoader)
-    """
-    def get_single_data(self):
-        data = super(IntegrateCommandLineArgumentsLoader, self).get_single_data()
-        return parse_command_line_arguments(data)
 
 
 def init_type_parser(yaml_value):
@@ -85,7 +85,7 @@ def init_type_parser(yaml_value):
     def yaml_bytes(value):
         return yaml_parse_value("!!python/bytes", value)
 
-    def yaml_python_name(value):
+    def yaml_python_callable(value):
         return yaml_parse_value("!!python/name", value)  # for passing module.name (functions or classes)
 
     def yaml_python_module(value):
@@ -95,7 +95,8 @@ def init_type_parser(yaml_value):
     # for most simple data types, use built-in methods, if not possible let yaml do the parsing
     # pairs, dict and bytes data types don't work, bool must be before int because isinstance(True, int) == True
     type_parsers = [(bool, yaml_bool), (int, int), (float, float), (complex, complex), (str, str), (bytes, yaml_bytes),
-                    (type(None), yaml_none), (datetime, yaml_timestamp), (list, yaml_list), (tuple, yaml_tuple)]
+                    (type(None), yaml_none), (list, yaml_list), (tuple, yaml_tuple),
+                    (datetime, yaml_timestamp), (date, yaml_timestamp), (time, yaml_timestamp)]
     for type_to_parse, parser in type_parsers:
         if isinstance(yaml_value, type_to_parse):
             return parser
@@ -111,7 +112,7 @@ def init_type_parser(yaml_value):
     if inspect.ismodule(yaml_value):
         return yaml_python_module
     elif hasattr(type_to_parse, '__call__'):
-        return yaml_python_name
+        return yaml_python_callable
 
     # have not found a parser
     raise UnsupportedYAMLTypeException("Can not handle type {}".format(type(yaml_value)))
