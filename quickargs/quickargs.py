@@ -11,14 +11,14 @@ else:
     from io import StringIO
 
 
-class YAMLLoader(yaml.Loader):
+class YAMLArgsLoader(yaml.Loader):
     """
     Convenience class for loading yaml file and parsing command line arguments in one step
     with open("config.yaml") as f:
-        config = yaml.load(f, Loader=quickargs.YAMLLoader)
+        config = yaml.load(f, Loader=quickargs.YAMLArgsLoader)
     """
     def get_single_data(self):
-        data = super(YAMLLoader, self).get_single_data()
+        data = super(YAMLArgsLoader, self).get_single_data()
         return merge_yaml_with_args(data)
 
 

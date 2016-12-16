@@ -7,8 +7,9 @@ from functools import wraps
 import yaml
 from nose.tools import assert_dict_equal, raises, nottest
 
-from quickargs import merge_yaml_with_args, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    YAMLLoader, init_type_parser, ArgumentWithoutNameException
+from quickargs import YAMLArgsLoader
+from quickargs.quickargs import merge_yaml_with_args, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
+    init_type_parser, ArgumentWithoutNameException
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -331,7 +332,9 @@ def test_bytes_py3_only():
     assert isinstance(actual["key1"], bytes)
 
 
-def test_unicode():
+def test_unicode_py2_only():
+    if sys.version_info[0] >= 3:
+        return
     yaml_params = {"key1": u"test"}
     command_line_params = ["-key1=234"]
     expected = {"key1": "234"}
@@ -449,8 +452,8 @@ def test_tuple_command_line_type_wrong():
 
 
 def test_function():
-    yaml_params = "key1: !!python/name:tests.functionA"
-    command_line_params = ["-key1=tests.functionB"]
+    yaml_params = "key1: !!python/name:quickargs.tests.functionA"
+    command_line_params = ["-key1=quickargs.tests.functionB"]
     expected = functionB
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -468,21 +471,21 @@ def test_function_builtin():
 
 @raises(SystemExit)
 def test_function_not_exist():
-    yaml_params = "key1: !!python/name:tests.functionA"
+    yaml_params = "key1: !!python/name:quickargs.tests.functionA"
     command_line_params = ["-key1=tests.not_existing"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 @raises(SystemExit)
 def test_function_pass_module():
-    yaml_params = "key1: !!python/name:tests.functionA"
+    yaml_params = "key1: !!python/name:quickargs.tests.functionA"
     command_line_params = ["-key1=yaml"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_class():
-    yaml_params = "key1: !!python/name:tests.ClassA"
-    command_line_params = ["-key1=tests.ClassB"]
+    yaml_params = "key1: !!python/name:quickargs.tests.ClassA"
+    command_line_params = ["-key1=quickargs.tests.ClassB"]
     expected = ClassB
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -491,7 +494,7 @@ def test_class():
 
 @raises(SystemExit)
 def test_class_not_exist():
-    yaml_params = "key1: !!python/name:tests.ClassA"
+    yaml_params = "key1: !!python/name:quickargs.tests.ClassA"
     command_line_params = ["-key1=tests.not_existing"]
     expected = ClassB
 
@@ -520,14 +523,14 @@ def test_module_not_exist():
     yaml_params = "key1: !!python/module:yaml.constructor"
     command_line_params = ["-key1=yaml.blabla"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
-"""
+
 
 """
 def test_instantiate():
     # warning, this should fail but does not
     # instantiation of classes is not supported but no errors will be thrown
     yaml_params = "key1: !ClassA\n name: test"
-    command_line_params = ["-key1=tests.ClassB"]
+    command_line_params = ["-key1=quickargs.tests.ClassB"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 """
 
@@ -535,7 +538,7 @@ def test_instantiate():
 # test integration with yaml
 ############################################
 
-"""
+
 # pass a list of arguments, instead of taking the ones from sys
 def test_with_supplied_arguments():
     yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
@@ -559,7 +562,7 @@ def test_loader_from_file():
     with temp_yaml_file(yaml_params) as temp_file:
         with open(temp_file) as f:
             with set_sys_argv(command_line_params):
-                actual = yaml.load(f, Loader=YAMLLoader)
+                actual = yaml.load(f, Loader=YAMLArgsLoader)
 
     assert_dict_equal(expected, actual)
 
@@ -573,7 +576,7 @@ def test_loader_from_stringio():
         with open(temp_file) as f:
             stream = StringIO(f.read())
             with set_sys_argv(command_line_params):
-                actual = yaml.load(stream, Loader=YAMLLoader)
+                actual = yaml.load(stream, Loader=YAMLArgsLoader)
 
     assert_dict_equal(expected, actual)
 
