@@ -8,8 +8,7 @@ import yaml
 from nose.tools import assert_dict_equal, raises, nottest
 
 from quickargs import YAMLArgsLoader
-from quickargs.quickargs import merge_yaml_with_args, flatten_dict, unflatten_dict, UnsupportedYAMLTypeException, \
-    init_type_parser, ArgumentWithoutNameException
+from .quickargs import merge_yaml_with_args, flatten_dict, unflatten_dict, ArgumentWithoutNameException
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
