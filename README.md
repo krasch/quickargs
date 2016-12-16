@@ -1,7 +1,9 @@
-![Build Status](https://travis-ci.org/krasch/yaml_argparse.svg)
+![Build Status](https://travis-ci.org/krasch/quickargs.svg)
 
-Takes a YAML config file and builds a parser for command line arguments around it. This allows you to easily
-overwrite default settings by passing command line arguments to your program. Supports nested arguments and auto-enforces parameter types.
+## quickargs
+
+Takes a YAML config file and builds a parser for command line arguments around it.
+This allows you to easily override default settings by passing command line arguments to your program. Supports nested arguments and auto-enforces parameter types.
 
 #### This config file...
 
@@ -201,13 +203,15 @@ python main.py -an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a
 #### Types
 
 Following types are not supported at all:
-- !!python/dict (because it looks just like the rest of the yaml file)
-- !!pairs
+
+* !!python/dict (because it looks just like the rest of the yaml file)
+* !!pairs
 
 Following types are not enforced / objects will not be instantiated:
-- !!python/object
-- !!python/object/new
-- !!python/object/apply
+
+* !!python/object
+* !!python/object/new
+* !!python/object/apply
 
 #### Multi-document loading
 
