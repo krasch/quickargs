@@ -1,7 +1,7 @@
 ![Build Status](https://travis-ci.org/krasch/yaml_argparse.svg)
 
-Takes a yaml config file and builds a parser for command line arguments around it. Supports nested arguments and
-auto-enforces parameter types.
+Takes a YAML config file and builds a parser for command line arguments around it. This allows you to easily
+overwrite default settings by passing command line arguments to your program. Supports nested arguments and auto-enforces parameter types.
 
 #### This config file...
 
@@ -18,7 +18,7 @@ import yaml
 import quickargs
 
 with open("config.yaml") as f:
-    config = yaml.load(f, Loader=quickargs.YAMLLoader)
+    config = yaml.load(f, Loader=quickargs.YAMLArgsLoader)
 ```
 
 #### ... will give you this command line interface
@@ -66,7 +66,7 @@ main.py: error: argument -logging.level: invalid int value: 'WARNING'
 ## Installation
 
 ```
-pip install -r requirements.txt
+pip install quickargs
 ```
 
 ## Usage
@@ -80,9 +80,8 @@ import yaml
 import quickargs
 
 with open("config.yaml") as f:
-    config = yaml.load(f, Loader=quickargs.YAMLLoader)
+    config = yaml.load(f, Loader=quickargs.YAMLArgsLoader)
 ```
-
 
 #### Deeply nested arguments are no problem
 
@@ -191,19 +190,28 @@ python main.py -an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a
  'a_float': 2.0,
  'an_int': 4,
  'python': {'a_class': <class 'yaml.parser.Parser'>,
-            'a_function': <class 'enumerate'>,
+            'a_function': <class 'enumerate'>, #todo
             'a_module': <module 'yaml' from ....>,
             'a_none': None},
  'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': ('b','a')}}
 ```
 
-## Un-supported types
+## Currently not supported
+
+#### Types
 
 Following types are not supported at all:
 - !!python/dict (because it looks just like the rest of the yaml file)
 - !!pairs
 
-Following types are not enforced:
-- !!python/object:module.cls
-- !!python/object/new:module.cls
-- !!python/object/apply:module.f
+Following types are not enforced / objects will not be instantiated:
+- !!python/object
+- !!python/object/new
+- !!python/object/apply
+
+#### Multi-document loading
+
+If the YAML file contains multiple documents, only the first document will be considered. The ```yaml.load_all```
+functionality is not supported.
+
+
