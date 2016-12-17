@@ -5,7 +5,7 @@ long_description = pypandoc.convert('README.md', 'rst')
 
 setup(
     name='quickargs',
-    version='0.1.5',
+    version='0.1',
     packages=['quickargs'],
     url='https://github.com/krasch/quickargs',
     license='MIT',
