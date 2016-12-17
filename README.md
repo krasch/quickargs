@@ -26,22 +26,23 @@ with open("config.yaml") as f:
 #### ... will give you this command line interface
 
 ```
-usage: main.py [-h] [-input_dir INPUT_DIR] [-logging.file LOGGING.FILE]
-               [-logging.level LOGGING.LEVEL]
+usage: main.py [-h] [--input_dir INPUT_DIR] [--logging.file LOGGING.FILE]
+               [--logging.level LOGGING.LEVEL]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -input_dir INPUT_DIR  default: data
-  -logging.file LOGGING.FILE
+  --input_dir INPUT_DIR
+                        default: data
+  --logging.file LOGGING.FILE
                         default: output.log
-  -logging.level LOGGING.LEVEL
+  --logging.level LOGGING.LEVEL
                         default: 4
 ```
 
 
 #### Override settings using the command line
 
-```python main.py -logging.file=other_log.txt```
+```python main.py --logging.file=other_log.txt```
 
 #### You get your merged yaml + command line parameters in a convenient dictionary
 
@@ -52,19 +53,20 @@ optional arguments:
 
 #### The types used in the yaml file are automatically enforced
 
-###### Setting the log-level to a string instead of an int: ```python main.py -logging.level=WARNING```
+###### Setting the log-level to a string instead of an int: ```python main.py --logging.level=WARNING```
 
 ```
-usage: main.py [-h] [-input_dir INPUT_DIR] [-logging.file LOGGING.FILE]
-               [-logging.level LOGGING.LEVEL]
-main.py: error: argument -logging.level: invalid int value: 'WARNING'
+usage: main.py [-h] [--input_dir INPUT_DIR] [--logging.file LOGGING.FILE]
+               [--logging.level LOGGING.LEVEL]
+main.py: error: argument --logging.level: invalid int value: 'WARNING'
 ```
 
-###### Setting the log-level to the correct type: ```python main.py -logging.level=0```
+###### Setting the log-level to the correct type: ```python main.py --logging.level=0```
 
 ```
 {'input_dir': 'data', 'logging': {'file': 'output.log', 'level': 0}}
 ```
+
 ## Installation
 
 ```
@@ -96,7 +98,7 @@ key1:
       key4: value
 ```
 
-###### Override nested argument using dot notation: ```python main.py -key1.key2.key3.key4=other_value```
+###### Override nested argument using dot notation: ```python main.py --key1.key2.key3.key4=other_value```
 
 ```
 {'key1': {'key2': {'key3': {'key4': 'other_value'}}}}
@@ -118,7 +120,7 @@ key1:
 thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 ```
 
-###### Override the thresholds: ```python main.py -model.thresholds='[0.0, 0.5, 1.0]'```
+###### Override the thresholds: ```python main.py --thresholds='[0.0, 0.5, 1.0]'```
 
 (take care to use ' ' around your command line arguments if they include spaces)
 
@@ -134,7 +136,7 @@ thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 ```
 
-###### List of strings instead of list of floats does not give an error: ```python main.py -thresholds=[a,b,c]```
+###### List of strings instead of list of floats does not give an error: ```python main.py --thresholds=[a,b,c]```
 
 ```
 {'thresholds': ['a', 'b', 'c']}
@@ -148,7 +150,7 @@ thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 function_to_call: !!python/name:yaml.dump
 ```
 
-###### Override with reference to built-in zip function: ```python main.py -function_to_call=zip```
+###### Override with reference to built-in zip function: ```python main.py --function_to_call=zip```
 ```
 {'function_to_call': <built-in function zip>}
 ```
@@ -182,9 +184,9 @@ python:
 ###### Override every single parameter in the config file
 
 ```
-python main.py -an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a_date=2017-01-01 \
-               -sequences.a_list=[c,b,c] -sequences.a_tuple=[b,a] -python.a_function=zip \
-               -python.a_class=yaml.parser.Parser -python.a_module=yaml -python.a_none=1234
+python main.py --an_int=4 --a_float=2.0 --a_bool=False --a_complex_number=42-111j --a_date=2017-01-01 \
+               --sequences.a_list=[c,b,c] --sequences.a_tuple=[b,a] --python.a_function=zip \
+               --python.a_class=yaml.parser.Parser --python.a_module=yaml --python.a_none=1234
 ```
 
 ```
@@ -195,9 +197,10 @@ python main.py -an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a
  'an_int': 4,
  'python': {'a_class': <class 'yaml.parser.Parser'>,
             'a_function': <built-in function zip>,
-            'a_module': <module 'yaml' from ....>,
+            'a_module': <module 'yaml' from ...>,
             'a_none': None},
- 'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': ('b','a')}}
+ 'sequences': {'a_list': ['c', 'b', 'c'], 'a_tuple': ('b', 'a')}}
+
 ```
 
 ## Currently not supported

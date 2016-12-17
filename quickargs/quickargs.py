@@ -45,7 +45,7 @@ def merge_yaml_with_args(yaml_config, argv=None):
     for key, val in sorted(yaml_config.items()):
         if len(key) == 0:
             raise ArgumentWithoutNameException()
-        parser.add_argument("-{}".format(key), default=val, type=init_type_parser(val), help="default: {}".format(val))
+        parser.add_argument("--{}".format(key), default=val, type=init_type_parser(val), help="default: {}".format(val))
 
     # parse the command line arguments and revert back from string keys to nested keys
     argv = argv or sys.argv[1:]

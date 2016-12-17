@@ -70,7 +70,7 @@ def test_one_string_no_overwrite():
 
 def test_one_string_overwrite():
     yaml_params = {"key1": "yaml_value_key1"}
-    command_line_params = ["-key1=cmd_value_key1"]
+    command_line_params = ["--key1=cmd_value_key1"]
     expected = {"key1": "cmd_value_key1"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -79,7 +79,7 @@ def test_one_string_overwrite():
 
 def test_one_string_overwrite_same_value():
     yaml_params = {"key1": "yaml_value_key1"}
-    command_line_params = ["-key1=yaml_value_key1"]
+    command_line_params = ["--key1=yaml_value_key1"]
     expected = {"key1": "yaml_value_key1"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -97,7 +97,7 @@ def test_multiple_strings_no_overwrite():
 
 def test_multiple_strings_one_overwrite():
     yaml_params = {"key1": "yaml_value_key1", "key2": "yaml_value_key2", "key3": "yaml_value_key3"}
-    command_line_params = ["-key2=cmd_value_key2"]
+    command_line_params = ["--key2=cmd_value_key2"]
     expected = {"key1": "yaml_value_key1", "key2": "cmd_value_key2", "key3": "yaml_value_key3"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -106,7 +106,7 @@ def test_multiple_strings_one_overwrite():
 
 def test_multiple_strings_two_overwrite():
     yaml_params = {"key1": "yaml_value_key1", "key2": "yaml_value_key2", "key3": "yaml_value_key3"}
-    command_line_params = ["-key2=cmd_value_key2", "-key3=cmd_value_key3"]
+    command_line_params = ["--key2=cmd_value_key2", "--key3=cmd_value_key3"]
     expected = {"key1": "yaml_value_key1", "key2": "cmd_value_key2", "key3": "cmd_value_key3"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -115,7 +115,7 @@ def test_multiple_strings_two_overwrite():
 
 def test_multiple_strings_all_overwrite():
     yaml_params = {"key1": "yaml_value_key1", "key2": "yaml_value_key2", "key3": "yaml_value_key3"}
-    command_line_params = ["-key1=cmd_value_key1", "-key2=cmd_value_key2", "-key3=cmd_value_key3"]
+    command_line_params = ["--key1=cmd_value_key1", "--key2=cmd_value_key2", "--key3=cmd_value_key3"]
     expected = {"key1": "cmd_value_key1", "key2": "cmd_value_key2", "key3": "cmd_value_key3"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -125,7 +125,7 @@ def test_multiple_strings_all_overwrite():
 @raises(SystemExit)
 def test_illegal_commmandline_param():
     yaml_params = {"key1": "yaml_value_key1"}
-    command_line_params = ["-not_existing=cmd_value"]
+    command_line_params = ["--not_existing=cmd_value"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
@@ -147,7 +147,7 @@ def test_nested_no_overwrite():
 
 def test_nested_overwrite():
     yaml_params = {"key1": {"key1_1": "yaml_value_key1_1"}}
-    command_line_params = ["-key1.key1_1=cmd_value_key1_1"]
+    command_line_params = ["--key1.key1_1=cmd_value_key1_1"]
     expected = {"key1": {"key1_1": "cmd_value_key1_1"}}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -161,7 +161,7 @@ def test_nested_overwrite_deep():
                              "key1_1_2": "yaml_value_key1_1_2"},
                         "key1_2": "yaml_value_key1_2"},
                    "key2": "yaml_value_key2"}
-    command_line_params = ["-key1.key1_1.key1_1_2=cmd_value_key1_1_2", "-key2=cmd_value_key2"]
+    command_line_params = ["--key1.key1_1.key1_1_2=cmd_value_key1_1_2", "--key2=cmd_value_key2"]
     expected = {"key1":
                     {"key1_1":
                          {"key1_1_1": "yaml_value_key1_1_1",
@@ -180,7 +180,7 @@ def test_nested_overwrite_deep():
 
 def test_int():
     yaml_params = {"key1": 123}
-    command_line_params = ["-key1=234"]
+    command_line_params = ["--key1=234"]
     expected = {"key1": 234}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -190,7 +190,7 @@ def test_int():
 @raises(SystemExit)
 def test_int_command_line_type_wrong():
     yaml_params = {"key1": 123}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
@@ -200,7 +200,7 @@ def test_long_py2_only():
         return
 
     yaml_params = {"key1": long(123)}
-    command_line_params = ["-key1=234"]
+    command_line_params = ["--key1=234"]
     expected = {"key1": long(234)}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -212,7 +212,7 @@ def test_long_command_line_type_wrong_py2_only():
         return
 
     yaml_params = {"key1": long(123)}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
     try:
         create_yaml_and_parse_arguments(yaml_params, command_line_params)
     except SystemExit:
@@ -222,7 +222,7 @@ def test_long_command_line_type_wrong_py2_only():
 
 def test_float():
     yaml_params = {"key1": 123.0}
-    command_line_params = ["-key1=234.0"]
+    command_line_params = ["--key1=234.0"]
     expected = {"key1": 234.0}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -232,14 +232,14 @@ def test_float():
 @raises(SystemExit)
 def test_float_command_line_type_wrong():
     yaml_params = {"key1": 123.0}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_complex():
     yaml_params = {"key1": 37-880j}
-    command_line_params = ["-key1=44-880j"]
+    command_line_params = ["--key1=44-880j"]
     expected = {"key1": 44-880j}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -249,14 +249,14 @@ def test_complex():
 @raises(SystemExit)
 def test_float_command_line_type_wrong():
     yaml_params = {"key1": 37-880j}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_bool():
     yaml_params = {"key1": True}
-    command_line_params = ["-key1=False"]
+    command_line_params = ["--key1=False"]
     expected = {"key1": False}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -265,7 +265,7 @@ def test_bool():
 
 def test_bool_alternative_false():
     yaml_params = {"key1": True}
-    command_line_params = ["-key1=No"]
+    command_line_params = ["--key1=No"]
     expected = {"key1": False}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -275,14 +275,14 @@ def test_bool_alternative_false():
 @raises(SystemExit)
 def test_bool_command_line_type_wrong():
     yaml_params = {"key1": True}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_none():
     yaml_params = {"key1": None}
-    command_line_params = ["-key1=None"]
+    command_line_params = ["--key1=None"]
     expected = {"key1": None}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -291,7 +291,7 @@ def test_none():
 
 def test_none_overwrite():
     yaml_params = {"key1": None}
-    command_line_params = ["-key1=value"]
+    command_line_params = ["--key1=value"]
     expected = {"key1": None}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -303,7 +303,7 @@ def test_timestamp():
     time_new = time_old + timedelta(hours=1)
 
     yaml_params = {"key1": time_old}
-    command_line_params = ["-key1={}".format(time_new)]
+    command_line_params = ["--key1={}".format(time_new)]
     expected = {"key1": time_new}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -313,7 +313,7 @@ def test_timestamp():
 @raises(SystemExit)
 def test_timestamp_command_line_type_wrong():
     yaml_params = {"key1": datetime.now()}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
@@ -323,7 +323,7 @@ def test_bytes_py3_only():
         return
 
     yaml_params = "key1: !!python/bytes test"
-    command_line_params = ["-key1=b'123'"]
+    command_line_params = ["--key1=b'123'"]
     expected = {"key1": b"123"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -335,7 +335,7 @@ def test_unicode_py2_only():
     if sys.version_info[0] >= 3:
         return
     yaml_params = {"key1": u"test"}
-    command_line_params = ["-key1=234"]
+    command_line_params = ["--key1=234"]
     expected = {"key1": "234"}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -344,7 +344,7 @@ def test_unicode_py2_only():
 
 def test_list_of_strings():
     yaml_params = {"key1": ['a', 'b', 'c']}
-    command_line_params = ["-key1=['x', 'y', 'z']"]
+    command_line_params = ["--key1=['x', 'y', 'z']"]
     expected = {"key1": ["x", "y", "z"]}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -353,7 +353,7 @@ def test_list_of_strings():
 
 def test_list_of_ints():
     yaml_params = {"key1": [0, 1, 2]}
-    command_line_params = ["-key1=[2, 4]"]
+    command_line_params = ["--key1=[2, 4]"]
     expected = {"key1": [2, 4]}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -363,7 +363,7 @@ def test_list_of_ints():
 def test_list_of_mixed_types():
     # warning: can not enforce anything about the types in a list
     yaml_params = {"key1": [0, "a", 2]}
-    command_line_params = ["-key1=[b, 4, True]"]
+    command_line_params = ["--key1=[b, 4, True]"]
     expected = {"key1": ['b', 4, True]}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -372,7 +372,7 @@ def test_list_of_mixed_types():
 
 def test_empty_list_in_cmd():
     yaml_params = {"key1": [0, 1, 2]}
-    command_line_params = ["-key1=[]"]
+    command_line_params = ["--key1=[]"]
     expected = {"key1": []}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -381,7 +381,7 @@ def test_empty_list_in_cmd():
 
 def test_empty_list_in_yaml():
     yaml_params = {"key1": []}
-    command_line_params = ["-key1=[0, 1, 2]"]
+    command_line_params = ["--key1=[0, 1, 2]"]
     expected = {"key1": [0, 1, 2]}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -391,14 +391,14 @@ def test_empty_list_in_yaml():
 @raises(SystemExit)
 def test_list_command_line_type_wrong():
     yaml_params = {"key1": [0, 1, 2]}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_tuple_of_strings():
     yaml_params = {"key1": ('a', 'b')}
-    command_line_params = ["-key1=['c', 'd']"]
+    command_line_params = ["--key1=['c', 'd']"]
     expected = {"key1": ("c", "d")}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -407,7 +407,7 @@ def test_tuple_of_strings():
 
 def test_tuple_of_ints():
     yaml_params = {"key1": (0, 1, 2)}
-    command_line_params = ["-key1=[4, 5]"]
+    command_line_params = ["--key1=[4, 5]"]
     expected = {"key1": (4, 5)}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -417,7 +417,7 @@ def test_tuple_of_ints():
 def test_tuple_of_mixed_types():
     # warning: can not enforce anything about the types in a tuple
     yaml_params = {"key1": ('a', 'b')}
-    command_line_params = ["-key1=[0, 'd']"]
+    command_line_params = ["--key1=[0, 'd']"]
     expected = {"key1": (0, "d")}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -426,7 +426,7 @@ def test_tuple_of_mixed_types():
 
 def test_empty_tuple_in_cmd():
     yaml_params = {"key1": (0, 1, 2)}
-    command_line_params = ["-key1=[]"]
+    command_line_params = ["--key1=[]"]
     expected = {"key1": ()}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -435,7 +435,7 @@ def test_empty_tuple_in_cmd():
 
 def test_empty_tuple_in_yaml():
     yaml_params = {"key1": ()}
-    command_line_params = ["-key1=[0, 1, 2]"]
+    command_line_params = ["--key1=[0, 1, 2]"]
     expected = {"key1": (0, 1, 2)}
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)
@@ -445,14 +445,14 @@ def test_empty_tuple_in_yaml():
 @raises(SystemExit)
 def test_tuple_command_line_type_wrong():
     yaml_params = {"key1": (0, 1, 2)}
-    command_line_params = ["-key1=hallo"]
+    command_line_params = ["--key1=hallo"]
 
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_function():
     yaml_params = "key1: !!python/name:quickargs.tests.functionA"
-    command_line_params = ["-key1=quickargs.tests.functionB"]
+    command_line_params = ["--key1=quickargs.tests.functionB"]
     expected = functionB
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -461,7 +461,7 @@ def test_function():
 
 def test_function_builtin():
     yaml_params = "key1: !!python/name:int"
-    command_line_params = ["-key1=float"]
+    command_line_params = ["--key1=float"]
     expected = float
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -471,20 +471,20 @@ def test_function_builtin():
 @raises(SystemExit)
 def test_function_not_exist():
     yaml_params = "key1: !!python/name:quickargs.tests.functionA"
-    command_line_params = ["-key1=tests.not_existing"]
+    command_line_params = ["--key1=tests.not_existing"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 @raises(SystemExit)
 def test_function_pass_module():
     yaml_params = "key1: !!python/name:quickargs.tests.functionA"
-    command_line_params = ["-key1=yaml"]
+    command_line_params = ["--key1=yaml"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 def test_class():
     yaml_params = "key1: !!python/name:quickargs.tests.ClassA"
-    command_line_params = ["-key1=quickargs.tests.ClassB"]
+    command_line_params = ["--key1=quickargs.tests.ClassB"]
     expected = ClassB
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -494,7 +494,7 @@ def test_class():
 @raises(SystemExit)
 def test_class_not_exist():
     yaml_params = "key1: !!python/name:quickargs.tests.ClassA"
-    command_line_params = ["-key1=tests.not_existing"]
+    command_line_params = ["--key1=tests.not_existing"]
     expected = ClassB
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -503,7 +503,7 @@ def test_class_not_exist():
 
 def test_module():
     yaml_params = "key1: !!python/module:yaml.constructor"
-    command_line_params = ["-key1=yaml.composer"]
+    command_line_params = ["--key1=yaml.composer"]
     expected = yaml.composer
 
     actual = create_yaml_and_parse_arguments(yaml_params, command_line_params)["key1"]
@@ -513,14 +513,14 @@ def test_module():
 @raises(SystemExit)
 def test_module_pass_function():
     yaml_params = "key1: !!python/module:yaml.constructor"
-    command_line_params = ["-key1=tests.functionA"]
+    command_line_params = ["--key1=tests.functionA"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
 @raises(SystemExit)
 def test_module_not_exist():
     yaml_params = "key1: !!python/module:yaml.constructor"
-    command_line_params = ["-key1=yaml.blabla"]
+    command_line_params = ["--key1=yaml.blabla"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 
 
@@ -529,7 +529,7 @@ def test_instantiate():
     # warning, this should fail but does not
     # instantiation of classes is not supported but no errors will be thrown
     yaml_params = "key1: !ClassA\n name: test"
-    command_line_params = ["-key1=quickargs.tests.ClassB"]
+    command_line_params = ["--key1=quickargs.tests.ClassB"]
     create_yaml_and_parse_arguments(yaml_params, command_line_params)
 """
 
@@ -541,7 +541,7 @@ def test_instantiate():
 # pass a list of arguments, instead of taking the ones from sys
 def test_with_supplied_arguments():
     yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
-    command_line_params = ["-key1=cmd_value_key1", "-key2.key2_2=7"]
+    command_line_params = ["--key1=cmd_value_key1", "--key2.key2_2=7"]
     expected = {"key1": "cmd_value_key1", "key2": {"key2_1": 21, "key2_2": 7}}
 
     # dumping and loading just to make sure to pass it through yaml once
@@ -555,7 +555,7 @@ def test_with_supplied_arguments():
 
 def test_loader_from_file():
     yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
-    command_line_params = ["-key1=cmd_value_key1", "-key2.key2_2=7"]
+    command_line_params = ["--key1=cmd_value_key1", "--key2.key2_2=7"]
     expected = {"key1": "cmd_value_key1", "key2": {"key2_1": 21, "key2_2": 7}}
 
     with temp_yaml_file(yaml_params) as temp_file:
@@ -568,7 +568,7 @@ def test_loader_from_file():
 
 def test_loader_from_stringio():
     yaml_params = {"key1": "yaml_value_key1", "key2": {"key2_1": 21, "key2_2": 22}}
-    command_line_params = ["-key1=cmd_value_key1", "-key2.key2_2=7"]
+    command_line_params = ["--key1=cmd_value_key1", "--key2.key2_2=7"]
     expected = {"key1": "cmd_value_key1", "key2": {"key2_1": 21, "key2_2": 7}}
 
     with temp_yaml_file(yaml_params) as temp_file:
@@ -683,7 +683,7 @@ logging:
 
 def test_simple_config():
     config = simple_conf
-    command_line_params = ["-logging.file=other_log.txt"]
+    command_line_params = ["--logging.file=other_log.txt"]
     expected = {'input_dir': 'data', 'logging': {'file': 'other_log.txt', 'level': 4}}
 
     actual = create_yaml_and_parse_arguments(config, command_line_params)
@@ -693,13 +693,13 @@ def test_simple_config():
 @raises(SystemExit)
 def test_supply_wrong_loglevel():
     config = simple_conf
-    command_line_params = ["-logging.level=WARNING"]
+    command_line_params = ["--logging.level=WARNING"]
     create_yaml_and_parse_arguments(config, command_line_params)
 
 
 def test_supply_correct_loglevel():
     config = simple_conf
-    command_line_params = ["-logging.level=0"]
+    command_line_params = ["--logging.level=0"]
     expected = {'input_dir': 'data', 'logging': {'file': 'output.log', 'level': 0}}
 
     actual = create_yaml_and_parse_arguments(config, command_line_params)
@@ -715,7 +715,7 @@ key1:
 
 def test_deep_nest():
     config = nested_conf
-    command_line_params = ["-key1.key2.key3.key4=other_value"]
+    command_line_params = ["--key1.key2.key3.key4=other_value"]
     expected = {"key1": {"key2": {"key3": {"key4": "other_value"}}}}
 
     actual = create_yaml_and_parse_arguments(config, command_line_params)
@@ -737,7 +737,7 @@ thresholds: [0.2, 0.4, 0.6, 0.8, 1.0]
 
 def test_sequence():
     config = sequence_conf
-    command_line_params = ["-thresholds=[0.0, 0.5, 1.0]"]
+    command_line_params = ["--thresholds=[0.0, 0.5, 1.0]"]
     expected = {"thresholds": [0.0, 0.5, 1.0]}
 
     actual = create_yaml_and_parse_arguments(config, command_line_params)
@@ -746,7 +746,7 @@ def test_sequence():
 
 def test_sequence_types_in_sequence_not_enforced():
     config = sequence_conf
-    command_line_params = ["-thresholds=[a,b,c]"]
+    command_line_params = ["--thresholds=[a,b,c]"]
     expected = {"thresholds": ["a","b","c"]}
 
     actual = create_yaml_and_parse_arguments(config, command_line_params)
@@ -759,7 +759,7 @@ function_to_call: !!python/name:yaml.dump
 
 def test_override_function():
     config = function_conf
-    command_line_params = ["-function_to_call=zip"]
+    command_line_params = ["--function_to_call=zip"]
     expected = {"function_to_call": zip}
 
     actual = create_yaml_and_parse_arguments(config, command_line_params)
@@ -791,9 +791,9 @@ python:
 
 def test_all_types():
     config = all_types_conf
-    command_line_params = "-an_int=4 -a_float=2.0 -a_bool=False -a_complex_number=42-111j -a_date=2017-01-01 "\
-               "-sequences.a_list=[c,b,c] -sequences.a_tuple=[b,a] -python.a_function=enumerate " \
-               "-python.a_class=yaml.parser.Parser -python.a_module=yaml -python.a_none=1234"
+    command_line_params = "--an_int=4 --a_float=2.0 --a_bool=False --a_complex_number=42-111j --a_date=2017-01-01 "\
+               "--sequences.a_list=[c,b,c] --sequences.a_tuple=[b,a] --python.a_function=enumerate " \
+               "--python.a_class=yaml.parser.Parser --python.a_module=yaml --python.a_none=1234"
     command_line_params = command_line_params.split()
     expected = {'a_bool': False,
  'a_complex_number': '42-111j',
